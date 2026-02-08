@@ -1,0 +1,60 @@
+/* إخفاء الترويسة في العرض العادي على الشاشة */
+.print-header-container {
+    display: none;
+}
+
+/* تنسيقات خاصة بالطباعة فقط */
+@media print {
+    /* إظهار الترويسة عند الطباعة */
+    .print-header-container {
+        display: block !important;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    /* تنسيق محتوى الترويسة */
+    .print-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        flex-direction: row; /* تأكد من الاتجاه المناسب */
+    }
+
+    /* تنسيق الصورة */
+    .print-logo-img {
+        max-height: 80px; /* ارتفاع مناسب للشعار */
+        width: auto;
+        object-fit: contain;
+    }
+
+    /* تنسيق النصوص */
+    .print-info-section {
+        text-align: center;
+        flex-grow: 1;
+    }
+
+    .print-app-name {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0;
+        color: #000;
+    }
+
+    .print-app-subtitle {
+        font-size: 14px;
+        color: #555;
+        margin: 5px 0 0;
+    }
+
+    .print-divider {
+        border: 0;
+        border-bottom: 2px solid #000;
+        margin-top: 10px;
+    }
+
+    /* إخفاء العناصر غير المرغوب فيها عند الطباعة (اختياري) */
+    .no-print, .sidebar, .navbar, button {
+        display: none !important;
+    }
+}
