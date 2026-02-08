@@ -28,8 +28,6 @@ body {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-  position: sticky;
-  top: 0;
   z-index: 1000;
 }
 
@@ -298,8 +296,6 @@ body {
   border-radius: 16px; 
   padding: 24px; 
   border: 1px solid #f1f5f9; 
-  position: sticky; 
-  top: 90px; 
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
@@ -1024,8 +1020,6 @@ body {
   background: #f8fafc;
   font-weight: 600;
   color: #374151;
-  position: sticky;
-  top: 0;
   font-size: 12px;
 }
 
@@ -1432,8 +1426,6 @@ body {
   background: #f8fafc;
   font-weight: 600;
   color: #374151;
-  position: sticky;
-  top: 0;
 }
 
 .payments-table tbody tr:hover {

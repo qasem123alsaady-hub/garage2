@@ -7288,8 +7288,6 @@ const authCSS = `
   background: #f8fafc;
   font-weight: 600;
   color: #374151;
-  position: sticky;
-  top: 0;
 }
 
 .payments-table tbody tr:hover {
