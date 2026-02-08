@@ -17,6 +17,7 @@ const Logo = ({ src, language, height = '50px' }) => {
 
   const style = {
     height: height, 
+    maxWidth: '100%',
     [language === 'ar' ? 'marginLeft' : 'marginRight']: '10px',
     objectFit: 'contain'
   };
@@ -4507,7 +4508,7 @@ function CarGarageManagement() {
                       📅 {t.dateRange}
                     </h4>
                     
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px'}}>
+                    <div className="responsive-grid-2" style={{marginBottom: '12px'}}>
                       <div className="form-group" style={{marginBottom: 0}}>
                         <label className="form-label">{t.fromDate}</label>
                         <input
@@ -4632,7 +4633,7 @@ function CarGarageManagement() {
                     📈 ${language === 'ar' ? 'ملخص الإيرادات' : 'Revenue Summary'}
                   </h4>
                   
-                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '16px'}}>
+                  <div className="responsive-grid-3" style={{marginBottom: '16px'}}>
                     <div style={{
                       background: '#f0fdf4',
                       padding: '16px',
@@ -6175,7 +6176,7 @@ function CarGarageManagement() {
                       📅 {t.dateRange}
                     </h4>
                     
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px'}}>
+                    <div className="responsive-grid-2" style={{marginBottom: '12px'}}>
                       <div className="form-group" style={{marginBottom: 0}}>
                         <label className="form-label">{t.fromDate}</label>
                         <input
@@ -6435,7 +6436,7 @@ function CarGarageManagement() {
                       📅 {t.dateRange}
                     </h4>
                     
-                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px'}}>
+                    <div className="responsive-grid-2" style={{marginBottom: '12px'}}>
                       <div className="form-group" style={{marginBottom: 0}}>
                         <label className="form-label">{t.fromDate}</label>
                         <input
