@@ -76,6 +76,7 @@ body {
 .header-actions { 
   display: flex; 
   gap: 12px; 
+  flex-wrap: wrap;
 }
 
 /* --- 3. الأزرار - تحسين نهائي --- */
@@ -94,6 +95,7 @@ body {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  min-height: 44px; /* تحسين للمس على الموبايل */
 }
 
 .btn::before {
@@ -899,13 +901,22 @@ body {
   
   .header-content {
     flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
+    gap: 16px;
+    align-items: center; /* توسيط الشعار والمعلومات */
+    text-align: center;
   }
   
   .header-actions {
     width: 100%;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .header-actions .btn {
+    flex: 1 1 auto;
+    min-width: calc(50% - 8px); /* زرين في كل سطر */
+    font-size: 13px;
+    padding: 8px 12px;
   }
   
   .search-container {
@@ -929,12 +940,18 @@ body {
   .detail-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 16px;
   }
   
   .detail-actions {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .detail-actions .btn {
+    flex: 1 1 auto;
   }
   
   .services-header {
@@ -945,6 +962,7 @@ body {
   
   .modal {
     margin: 0;
+    max-height: 95vh;
   }
 }
 
@@ -979,9 +997,11 @@ body {
 .payments-table-container {
   max-height: 300px;
   overflow-y: auto;
+  overflow-x: auto; /* إضافة تمرير أفقي */
   border: 1px solid #f1f5f9;
   border-radius: 8px;
   background: white;
+  -webkit-overflow-scrolling: touch;
 }
 
 .payments-table {
@@ -989,6 +1009,7 @@ body {
   border-collapse: collapse;
   background: white;
   font-size: 13px;
+  min-width: 600px; /* ضمان عدم انضغاط الجدول بشدة */
 }
 
 .payments-table th,
@@ -996,6 +1017,7 @@ body {
   padding: 12px;
   text-align: right;
   border-bottom: 1px solid #f1f5f9;
+  white-space: nowrap; /* منع التفاف النص لضمان وضوح الجدول */
 }
 
 .payments-table th {
@@ -1167,7 +1189,25 @@ body {
   }
 }
 
-/* --- 16. تنسيقات تسجيل الدخول --- */
+/* --- 17. فئات مساعدة للشبكة --- */
+.responsive-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.responsive-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .responsive-grid-2, .responsive-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
 .auth-container {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
