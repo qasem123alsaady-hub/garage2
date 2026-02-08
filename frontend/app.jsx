@@ -469,7 +469,7 @@ function CarGarageManagement() {
     e.preventDefault();
     
     try {
-      const response = await fetch(`${API_BASE}/auth.php', {
+      const response = await fetch(`${API_BASE}/auth.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -564,7 +564,7 @@ function CarGarageManagement() {
         return;
       }
 
-      const response = await fetch(`${API_BASE}/customers.php', {
+      const response = await fetch(`${API_BASE}/customers.php`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -658,7 +658,7 @@ function CarGarageManagement() {
         return;
       }
 
-      const response = await fetch(`${API_BASE}/customers.php', {
+      const response = await fetch(`${API_BASE}/customers.php`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -740,7 +740,7 @@ function CarGarageManagement() {
   // دوال إدارة المستخدمين (الفنيين)
   const fetchTechnicians = async () => {
     try {
-      const response = await fetch(`${API_BASE}/users.php?role=technician');
+      const response = await fetch(`${API_BASE}/users.php?role=technician`);
       if (response.ok) {
         const data = await response.json();
         setTechnicians(data.users || []);
@@ -775,7 +775,7 @@ function CarGarageManagement() {
         return;
       }
 
-      const response = await fetch(`${API_BASE}/users.php', {
+      const response = await fetch(`${API_BASE}/users.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -820,7 +820,7 @@ function CarGarageManagement() {
         return;
       }
 
-      const response = await fetch(`${API_BASE}/users.php', {
+      const response = await fetch(`${API_BASE}/users.php`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -859,7 +859,7 @@ function CarGarageManagement() {
     }
     
     try {
-      const response = await fetch(`${API_BASE}/users.php', {
+      const response = await fetch(`${API_BASE}/users.php`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -900,7 +900,7 @@ function CarGarageManagement() {
     try {
       console.log('🔄 جاري جلب جميع المستخدمين من قاعدة البيانات...');
       
-      const response = await fetch(`${API_BASE}/users.php', {
+      const response = await fetch(`${API_BASE}/users.php`, {
         method: 'GET',
         headers: { 
           'Content-Type': 'application/json',
@@ -996,7 +996,7 @@ function CarGarageManagement() {
         password: resetPasswordData.newPassword
       });
       
-      const response = await fetch(`${API_BASE}/users.php', {
+      const response = await fetch(`${API_BASE}/users.php`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1051,7 +1051,7 @@ function CarGarageManagement() {
     }
     
     try {
-      const response = await fetch(`${API_BASE}/users.php', {
+      const response = await fetch(`${API_BASE}/users.php`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1105,7 +1105,7 @@ function CarGarageManagement() {
         return;
       }
 
-      const response = await fetch(`${API_BASE}/vehicles.php', {
+      const response = await fetch(`${API_BASE}/vehicles.php`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -1447,7 +1447,7 @@ function CarGarageManagement() {
         notes: editSinglePaymentData.notes || ''
       };
 
-      const response = await fetch(`${API_BASE}/payments.php', {
+      const response = await fetch(`${API_BASE}/payments.php`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -1501,7 +1501,7 @@ function CarGarageManagement() {
     if (!confirm(t.confirmDelete)) return;
     
     try {
-      const response = await fetch(`${API_BASE}/payments.php', {
+      const response = await fetch(`${API_BASE}/payments.php`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -1543,7 +1543,7 @@ function CarGarageManagement() {
     if (!confirm(t.confirmServiceDelete)) return;
     
     try {
-      const response = await fetch(`${API_BASE}/services.php', {
+      const response = await fetch(`${API_BASE}/services.php`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -1623,7 +1623,7 @@ function CarGarageManagement() {
     if (!confirm(t.confirmCustomerDelete)) return;
     
     try {
-      const response = await fetch(`${API_BASE}/customers.php', {
+      const response = await fetch(`${API_BASE}/customers.php`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -2034,7 +2034,7 @@ function CarGarageManagement() {
         payment_date: new Date().toISOString().split('T')[0]
       };
 
-      const response = await fetch(`${API_BASE}/payments.php', {
+      const response = await fetch(`${API_BASE}/payments.php`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -2129,7 +2129,7 @@ function CarGarageManagement() {
             payment_date: new Date().toISOString().split('T')[0]
           };
 
-          const response = await fetch(`${API_BASE}/payments.php', {
+          const response = await fetch(`${API_BASE}/payments.php`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
@@ -2177,7 +2177,7 @@ function CarGarageManagement() {
             payment_date: new Date().toISOString().split('T')[0]
           };
 
-          const response = await fetch(`${API_BASE}/payments.php', {
+          const response = await fetch(`${API_BASE}/payments.php`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
