@@ -6,6 +6,7 @@ export default defineConfig({
   base: './',
   server: {
     port: 3000,
+    host: true,
     allowedHosts: ['garage2-r68a.onrender.com']
   }
 })

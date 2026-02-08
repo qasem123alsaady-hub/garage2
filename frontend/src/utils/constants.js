@@ -1,6 +1,7 @@
 // API Configuration
+const API_HOSTNAME = typeof window !== 'undefined' ? (window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname) : 'localhost';
 export const API_CONFIG = {
-  BASE_URL: 'http://localhost/car-garage/backend/api',
+  BASE_URL: `http://${API_HOSTNAME}/car-garage/backend/api`,
   TIMEOUT: 30000,
   RETRY_ATTEMPTS: 3
 };

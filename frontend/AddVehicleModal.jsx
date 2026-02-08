@@ -19,7 +19,8 @@ function AddVehicleModal({ isOpen, onClose, onSuccess, customers, t }) {
         return;
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/vehicles.php', {
+      const API_HOSTNAME = window.location.hostname;
+      const response = await fetch(`http://${API_HOSTNAME}/car-garage/backend/api/vehicles.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newVehicle)

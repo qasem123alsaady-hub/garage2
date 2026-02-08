@@ -6,6 +6,10 @@ import { translations } from './translations';
 import { userPermissions } from './permissions';
 import PrintHeader from '../PrintHeader';
 
+// تحديد عنوان الـ API بشكل ديناميكي ليعمل على المتصفحات العادية والموبايل
+const API_HOSTNAME = window.location.hostname === 'localhost' ? 'localhost' : window.location.hostname;
+const API_BASE = `http://${API_HOSTNAME}/car-garage/backend/api`;
+
 // مكون الشعار الذكي الذي يعالج أخطاء التحميل
 const Logo = ({ src, language, height = '50px' }) => {
   const [error, setError] = useState(false);
@@ -412,8 +416,6 @@ function CarGarageManagement() {
   // دالة محسنة لجلب البيانات
   const fetchData = async () => {
     try {
-      const API_BASE = 'http://localhost/car-garage/backend/api';
-      
       const [customersResult, vehiclesResult, servicesResult, paymentsResult, usersResult] = await Promise.allSettled([
         fetch(`${API_BASE}/customers.php`).then(res => res.ok ? res.json() : []).catch(() => []),
         fetch(`${API_BASE}/vehicles.php`).then(res => res.ok ? res.json() : []).catch(() => []),
@@ -467,7 +469,7 @@ function CarGarageManagement() {
     e.preventDefault();
     
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/auth.php', {
+      const response = await fetch(`${API_BASE}/auth.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -562,7 +564,7 @@ function CarGarageManagement() {
         return;
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/customers.php', {
+      const response = await fetch(`${API_BASE}/customers.php', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -656,7 +658,7 @@ function CarGarageManagement() {
         return;
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/customers.php', {
+      const response = await fetch(`${API_BASE}/customers.php', {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -738,7 +740,7 @@ function CarGarageManagement() {
   // دوال إدارة المستخدمين (الفنيين)
   const fetchTechnicians = async () => {
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php?role=technician');
+      const response = await fetch(`${API_BASE}/users.php?role=technician');
       if (response.ok) {
         const data = await response.json();
         setTechnicians(data.users || []);
@@ -773,7 +775,7 @@ function CarGarageManagement() {
         return;
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php', {
+      const response = await fetch(`${API_BASE}/users.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -818,7 +820,7 @@ function CarGarageManagement() {
         return;
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php', {
+      const response = await fetch(`${API_BASE}/users.php', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -857,7 +859,7 @@ function CarGarageManagement() {
     }
     
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php', {
+      const response = await fetch(`${API_BASE}/users.php', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -898,7 +900,7 @@ function CarGarageManagement() {
     try {
       console.log('🔄 جاري جلب جميع المستخدمين من قاعدة البيانات...');
       
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php', {
+      const response = await fetch(`${API_BASE}/users.php', {
         method: 'GET',
         headers: { 
           'Content-Type': 'application/json',
@@ -994,7 +996,7 @@ function CarGarageManagement() {
         password: resetPasswordData.newPassword
       });
       
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php', {
+      const response = await fetch(`${API_BASE}/users.php', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1049,7 +1051,7 @@ function CarGarageManagement() {
     }
     
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php', {
+      const response = await fetch(`${API_BASE}/users.php', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1103,7 +1105,7 @@ function CarGarageManagement() {
         return;
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/vehicles.php', {
+      const response = await fetch(`${API_BASE}/vehicles.php', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -1203,7 +1205,7 @@ function CarGarageManagement() {
         return;
       }
 
-      const response = await fetch(`http://localhost/car-garage/backend/api/vehicles.php?id=${selectedVehicle.id}`, {
+      const response = await fetch(`${API_BASE}/vehicles.php?id=${selectedVehicle.id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -1300,7 +1302,7 @@ function CarGarageManagement() {
         return;
       }
 
-      const response = await fetch(`http://localhost/car-garage/backend/api/services.php`, {
+      const response = await fetch(`${API_BASE}/services.php`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -1387,7 +1389,7 @@ function CarGarageManagement() {
   // دالة جلب الدفعات
   const fetchPayments = async (serviceId) => {
     try {
-      const response = await fetch(`http://localhost/car-garage/backend/api/payments.php?service_id=${serviceId}`);
+      const response = await fetch(`${API_BASE}/payments.php?service_id=${serviceId}`);
       if (response.ok) {
         const paymentsData = await response.json();
         setPayments(paymentsData);
@@ -1445,7 +1447,7 @@ function CarGarageManagement() {
         notes: editSinglePaymentData.notes || ''
       };
 
-      const response = await fetch('http://localhost/car-garage/backend/api/payments.php', {
+      const response = await fetch(`${API_BASE}/payments.php', {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -1499,7 +1501,7 @@ function CarGarageManagement() {
     if (!confirm(t.confirmDelete)) return;
     
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/payments.php', {
+      const response = await fetch(`${API_BASE}/payments.php', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -1541,7 +1543,7 @@ function CarGarageManagement() {
     if (!confirm(t.confirmServiceDelete)) return;
     
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/services.php', {
+      const response = await fetch(`${API_BASE}/services.php', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -1580,7 +1582,7 @@ function CarGarageManagement() {
     if (!confirm(t.confirmVehicleDelete)) return;
     
     try {
-      const response = await fetch(`http://localhost/car-garage/backend/api/vehicles.php?id=${vehicleId}`, {
+      const response = await fetch(`${API_BASE}/vehicles.php?id=${vehicleId}`, {
         method: 'DELETE',
       });
 
@@ -1621,7 +1623,7 @@ function CarGarageManagement() {
     if (!confirm(t.confirmCustomerDelete)) return;
     
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/customers.php', {
+      const response = await fetch(`${API_BASE}/customers.php', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -2032,7 +2034,7 @@ function CarGarageManagement() {
         payment_date: new Date().toISOString().split('T')[0]
       };
 
-      const response = await fetch('http://localhost/car-garage/backend/api/payments.php', {
+      const response = await fetch(`${API_BASE}/payments.php', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -2127,7 +2129,7 @@ function CarGarageManagement() {
             payment_date: new Date().toISOString().split('T')[0]
           };
 
-          const response = await fetch('http://localhost/car-garage/backend/api/payments.php', {
+          const response = await fetch(`${API_BASE}/payments.php', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
@@ -2175,7 +2177,7 @@ function CarGarageManagement() {
             payment_date: new Date().toISOString().split('T')[0]
           };
 
-          const response = await fetch('http://localhost/car-garage/backend/api/payments.php', {
+          const response = await fetch(`${API_BASE}/payments.php', {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',

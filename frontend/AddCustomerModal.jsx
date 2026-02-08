@@ -17,7 +17,8 @@ function AddCustomerModal({ isOpen, onClose, onSuccess, t }) {
         return;
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/customers.php', {
+      const API_HOSTNAME = window.location.hostname;
+      const response = await fetch(`http://${API_HOSTNAME}/car-garage/backend/api/customers.php`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

@@ -1,7 +1,6 @@
 // يمكنك تغيير هذا العنوان ليتناسب مع رابط السيرفر الخاص بك
-const API_BASE = window.location.hostname === 'localhost' 
-  ? 'http://localhost/car-garage/backend/api' 
-  : '/car-garage/backend/api';
+const API_HOSTNAME = window.location.hostname;
+const API_BASE = `http://${API_HOSTNAME}/car-garage/backend/api`;
 
 // Helper function for API calls
 export const apiCall = async (endpoint, options = {}) => {

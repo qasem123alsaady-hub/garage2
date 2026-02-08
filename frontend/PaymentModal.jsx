@@ -22,7 +22,8 @@ function PaymentModal({ isOpen, onClose, onSuccess, service, t }) {
     if (!service) return;
 
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/payments.php', {
+      const API_HOSTNAME = window.location.hostname;
+      const response = await fetch(`http://${API_HOSTNAME}/car-garage/backend/api/payments.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
