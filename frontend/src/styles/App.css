@@ -40,6 +40,7 @@ body {
 .header {
   background: white;
   border-bottom: 1px solid var(--border);
+  position: relative !important;
   padding: 15px 0;
   box-shadow: var(--shadow);
 }

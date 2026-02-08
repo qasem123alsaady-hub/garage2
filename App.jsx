@@ -7040,6 +7040,10 @@ const authCSS = `
   padding: 30px;
 }
 
+.header {
+  position: relative !important;
+}
+
 .auth-header {
   text-align: center;
   margin-bottom: 30px;
@@ -7067,6 +7071,10 @@ const authCSS = `
   width: 100%;
   padding: 12px;
   font-size: 16px;
+}
+
+.sidebar {
+  position: relative !important;
 }
 
 .user-info {
