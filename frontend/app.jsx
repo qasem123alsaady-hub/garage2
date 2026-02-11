@@ -5420,7 +5420,15 @@ function CarGarageManagement() {
                       <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{t.customer}</th>
                       <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{t.vehicle}</th>
                       <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{financialReportType === 'invoices' ? t.serviceType : t.paymentMethod}</th>
-                      <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{financialReportType === 'invoices' ? t.cost : t.amount}</th>
+                      {financialReportType === 'invoices' ? (
+                        <>
+                          <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{t.beforeTax}</th>
+                          <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{t.taxValue} (5%)</th>
+                          <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{t.afterTax}</th>
+                        </>
+                      ) : (
+                        <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{t.amount}</th>
+                      )}
                       {financialReportType === 'invoices' && <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{t.status}</th>}
                     </tr>
                   </thead>
@@ -5481,9 +5489,17 @@ function CarGarageManagement() {
                                   : (item.payment_method === 'cash' ? t.cash : item.payment_method === 'card' ? t.card : item.payment_method === 'transfer' ? t.transfer : t.check)
                                 }
                               </td>
-                              <td style={{padding: '12px', fontWeight: 'bold', color: financialReportType === 'invoices' ? '#1f2937' : '#10b981'}}>
-                                ${parseFloat(financialReportType === 'invoices' ? item.cost : item.amount).toFixed(2)}
-                              </td>
+                              {financialReportType === 'invoices' ? (
+                                <>
+                                  <td style={{padding: '12px', fontWeight: 'bold', color: '#1f2937'}}>${(parseFloat(item.cost) / 1.05).toFixed(2)}</td>
+                                  <td style={{padding: '12px', fontWeight: 'bold', color: '#dc2626'}}>${(parseFloat(item.cost) - (parseFloat(item.cost) / 1.05)).toFixed(2)}</td>
+                                  <td style={{padding: '12px', fontWeight: 'bold', color: '#10b981'}}>${parseFloat(item.cost).toFixed(2)}</td>
+                                </>
+                              ) : (
+                                <td style={{padding: '12px', fontWeight: 'bold', color: '#10b981'}}>
+                                  ${parseFloat(item.amount).toFixed(2)}
+                                </td>
+                              )}
                               {financialReportType === 'invoices' && (
                                 <td style={{padding: '12px'}}>
                                   <StatusBadge status={item.status} />
@@ -5492,12 +5508,21 @@ function CarGarageManagement() {
                             </tr>
                           ))}
                           <tr style={{background: '#f0fdf4', fontWeight: 'bold', borderTop: '2px solid #bbf7d0'}}>
-                            <td colSpan={financialReportType === 'invoices' ? 6 : 6} style={{padding: '16px', textAlign: 'center'}}>
+                            <td colSpan={6} style={{padding: '16px', textAlign: 'center'}}>
                               {t.totalAmount}
                             </td>
-                            <td colSpan={2} style={{padding: '16px', color: '#15803d', fontSize: '18px'}}>
-                              ${totalAmount.toFixed(2)}
-                            </td>
+                            {financialReportType === 'invoices' ? (
+                              <>
+                                <td style={{padding: '16px', color: '#1f2937', fontSize: '16px'}}>${(totalAmount / 1.05).toFixed(2)}</td>
+                                <td style={{padding: '16px', color: '#dc2626', fontSize: '16px'}}>${(totalAmount - (totalAmount / 1.05)).toFixed(2)}</td>
+                                <td style={{padding: '16px', color: '#15803d', fontSize: '18px'}}>${totalAmount.toFixed(2)}</td>
+                                <td></td>
+                              </>
+                            ) : (
+                              <td colSpan={2} style={{padding: '16px', color: '#15803d', fontSize: '18px'}}>
+                                ${totalAmount.toFixed(2)}
+                              </td>
+                            )}
                           </tr>
                         </>
                       );
