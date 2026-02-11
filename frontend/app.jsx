@@ -129,6 +129,14 @@ function CarGarageManagement() {
   const [isCustomerReportOpen, setIsCustomerReportOpen] = useState(false);
   const [isRevenueReportOpen, setIsRevenueReportOpen] = useState(false);
   
+  // States للإدارة المالية
+  const [isFinancialManagerOpen, setIsFinancialManagerOpen] = useState(false);
+  const [financialReportType, setFinancialReportType] = useState('invoices'); // 'invoices' or 'receipts'
+  const [financialDateRange, setFinancialDateRange] = useState({
+    startDate: new Date().toISOString().split('T')[0].substring(0, 7) + '-01', // بداية الشهر الحالي
+    endDate: new Date().toISOString().split('T')[0]
+  });
+
   // States للبيانات الجديدة
   const [newVehicle, setNewVehicle] = useState({
     make: '',
@@ -4049,6 +4057,17 @@ function CarGarageManagement() {
   </button>
 )}
               
+              {/* زر الإدارة المالية للمدير فقط */}
+              {currentUser?.role === 'admin' && (
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => setIsFinancialManagerOpen(true)}
+                  style={{background: '#0f766e', color: 'white', border: 'none'}}
+                >
+                  <span>💼</span> {t.financialManagement}
+                </button>
+              )}
+              
               <button className="btn btn-outline btn-danger" onClick={handleLogout}>
                 <span>🚪</span> {t.logout}
               </button>
@@ -5324,6 +5343,172 @@ function CarGarageManagement() {
                 >
                   🖨️ {t.printReport}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* نموذج الإدارة المالية */}
+      {isFinancialManagerOpen && currentUser?.role === 'admin' && (
+        <div className="modal-overlay">
+          <div className="modal" style={{maxWidth: '1100px', maxHeight: '95vh', width: '95%', display: 'flex', flexDirection: 'column'}}>
+            <div className="modal-header">
+              <h3 className="modal-title">💼 {t.financialManagement}</h3>
+              <button className="modal-close" onClick={() => setIsFinancialManagerOpen(false)}>❌</button>
+            </div>
+            
+            <div className="modal-body-scrollable" style={{flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '20px'}}>
+              
+              {/* أدوات التحكم والفلترة */}
+              <div style={{background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '20px'}}>
+                <div style={{display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-end'}}>
+                  
+                  {/* نوع التقرير */}
+                  <div style={{flex: '1 1 200px'}}>
+                    <label className="form-label" style={{marginBottom: '8px', display: 'block'}}>{language === 'ar' ? 'نوع التقرير' : 'Report Type'}</label>
+                    <div style={{display: 'flex', gap: '10px'}}>
+                      <button 
+                        className={`btn ${financialReportType === 'invoices' ? 'btn-primary' : 'btn-outline'}`}
+                        onClick={() => setFinancialReportType('invoices')}
+                        style={{flex: 1}}
+                      >
+                        📄 {t.invoicesReport}
+                      </button>
+                      <button 
+                        className={`btn ${financialReportType === 'receipts' ? 'btn-primary' : 'btn-outline'}`}
+                        onClick={() => setFinancialReportType('receipts')}
+                        style={{flex: 1}}
+                      >
+                        🧾 {t.receiptsReport}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* الفترة الزمنية */}
+                  <div style={{flex: '2 1 300px', display: 'flex', gap: '10px'}}>
+                    <div style={{flex: 1}}>
+                      <label className="form-label">{t.fromDate}</label>
+                      <input 
+                        type="date" 
+                        className="form-input" 
+                        value={financialDateRange.startDate}
+                        onChange={(e) => setFinancialDateRange({...financialDateRange, startDate: e.target.value})}
+                      />
+                    </div>
+                    <div style={{flex: 1}}>
+                      <label className="form-label">{t.toDate}</label>
+                      <input 
+                        type="date" 
+                        className="form-input" 
+                        value={financialDateRange.endDate}
+                        onChange={(e) => setFinancialDateRange({...financialDateRange, endDate: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* عرض البيانات */}
+              <div style={{flex: 1, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px'}}>
+                <table style={{width: '100%', borderCollapse: 'collapse', fontSize: '14px'}}>
+                  <thead style={{position: 'sticky', top: 0, background: '#f1f5f9', zIndex: 10}}>
+                    <tr>
+                      <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>#</th>
+                      <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{t.date}</th>
+                      <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{financialReportType === 'invoices' ? t.invoiceId : t.receiptId}</th>
+                      <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{t.customer}</th>
+                      <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{t.vehicle}</th>
+                      <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{financialReportType === 'invoices' ? t.serviceType : t.paymentMethod}</th>
+                      <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{financialReportType === 'invoices' ? t.cost : t.amount}</th>
+                      {financialReportType === 'invoices' && <th style={{padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #e2e8f0'}}>{t.status}</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const start = new Date(financialDateRange.startDate);
+                      const end = new Date(financialDateRange.endDate);
+                      end.setHours(23, 59, 59, 999);
+
+                      let data = [];
+                      let totalAmount = 0;
+
+                      if (financialReportType === 'invoices') {
+                        data = services.filter(s => {
+                          const d = new Date(s.date);
+                          return d >= start && d <= end;
+                        }).map(s => {
+                          const vehicle = vehicles.find(v => v.id === s.vehicle_id);
+                          const customer = vehicle ? customers.find(c => c.id === vehicle.customer_id) : null;
+                          return { ...s, vehicle, customer };
+                        });
+                        totalAmount = data.reduce((sum, item) => sum + parseFloat(item.cost || 0), 0);
+                      } else {
+                        data = payments.filter(p => {
+                          const d = new Date(p.payment_date);
+                          return d >= start && d <= end;
+                        }).map(p => {
+                          const service = services.find(s => s.id === p.service_id);
+                          const vehicle = service ? vehicles.find(v => v.id === service.vehicle_id) : null;
+                          const customer = vehicle ? customers.find(c => c.id === vehicle.customer_id) : null;
+                          return { ...p, service, vehicle, customer };
+                        });
+                        totalAmount = data.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+                      }
+
+                      if (data.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan="8" style={{padding: '40px', textAlign: 'center', color: '#6b7280'}}>
+                              {t.noData}
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return (
+                        <>
+                          {data.map((item, index) => (
+                            <tr key={item.id} style={{borderBottom: '1px solid #f1f5f9', background: index % 2 === 0 ? 'white' : '#f8fafc'}}>
+                              <td style={{padding: '12px'}}>{index + 1}</td>
+                              <td style={{padding: '12px'}}>{financialReportType === 'invoices' ? item.date : item.payment_date}</td>
+                              <td style={{padding: '12px', fontFamily: 'monospace', color: '#6b7280'}}>{item.id}</td>
+                              <td style={{padding: '12px', fontWeight: '500'}}>{item.customer ? item.customer.name : '-'}</td>
+                              <td style={{padding: '12px'}}>{item.vehicle ? `${item.vehicle.make} ${item.vehicle.model}` : '-'}</td>
+                              <td style={{padding: '12px'}}>
+                                {financialReportType === 'invoices' 
+                                  ? getServiceTypeLabel(item.type)
+                                  : (item.payment_method === 'cash' ? t.cash : item.payment_method === 'card' ? t.card : item.payment_method === 'transfer' ? t.transfer : t.check)
+                                }
+                              </td>
+                              <td style={{padding: '12px', fontWeight: 'bold', color: financialReportType === 'invoices' ? '#1f2937' : '#10b981'}}>
+                                ${parseFloat(financialReportType === 'invoices' ? item.cost : item.amount).toFixed(2)}
+                              </td>
+                              {financialReportType === 'invoices' && (
+                                <td style={{padding: '12px'}}>
+                                  <StatusBadge status={item.status} />
+                                </td>
+                              )}
+                            </tr>
+                          ))}
+                          <tr style={{background: '#f0fdf4', fontWeight: 'bold', borderTop: '2px solid #bbf7d0'}}>
+                            <td colSpan={financialReportType === 'invoices' ? 6 : 6} style={{padding: '16px', textAlign: 'center'}}>
+                              {t.totalAmount}
+                            </td>
+                            <td colSpan={2} style={{padding: '16px', color: '#15803d', fontSize: '18px'}}>
+                              ${totalAmount.toFixed(2)}
+                            </td>
+                          </tr>
+                        </>
+                      );
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="form-actions" style={{marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '16px'}}>
+                <button className="btn btn-outline" onClick={() => setIsFinancialManagerOpen(false)}>{t.close}</button>
+                <button className="btn btn-primary" onClick={() => window.print()}>🖨️ {t.printReport}</button>
               </div>
             </div>
           </div>
