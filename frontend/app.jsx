@@ -477,7 +477,7 @@ function CarGarageManagement() {
     e.preventDefault();
     
     try {
-      const response = await fetch('${API_BASE}/auth.php', {
+      const response = await fetch(`${API_BASE}/auth.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -2092,6 +2092,8 @@ function CarGarageManagement() {
     
     try {
       const paymentAmount = parseFloat(bulkPaymentData.amount) || 0;
+      
+      console.log(`Processing bulk payment. Amount: ${paymentAmount}, API: ${API_BASE}`);
       
       const vehicleServices = getServicesForVehicle(selectedVehicle.id);
       
