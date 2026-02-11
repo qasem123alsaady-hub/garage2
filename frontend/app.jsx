@@ -2415,6 +2415,72 @@ function CarGarageManagement() {
     document.body.removeChild(link);
   };
 
+  // دالة تصدير البيانات إلى Excel (XML) لدعم تعدد الأوراق
+  const exportToExcel = (sheets, filename) => {
+    let workbookXML = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Bottom"/>
+   <Borders/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+   <Interior/>
+   <NumberFormat/>
+   <Protection/>
+  </Style>
+ </Styles>`;
+
+    for (const [sheetName, rows] of Object.entries(sheets)) {
+      workbookXML += `<Worksheet ss:Name="${sheetName}">
+  <Table>`;
+      
+      for (const row of rows) {
+        workbookXML += `<Row>`;
+        for (const cell of row) {
+          let cellValue = cell;
+          let type = 'String';
+          
+          if (typeof cell === 'number') {
+            type = 'Number';
+          } else if (cell === null || cell === undefined) {
+            cellValue = '';
+          }
+          
+          // Escape XML characters
+          const escapedValue = String(cellValue)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+
+          workbookXML += `<Cell><Data ss:Type="${type}">${escapedValue}</Data></Cell>`;
+        }
+        workbookXML += `</Row>`;
+      }
+      
+      workbookXML += `</Table>
+ </Worksheet>`;
+    }
+
+    workbookXML += `</Workbook>`;
+
+    const blob = new Blob([workbookXML], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename + ".xls");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // تصدير تقرير الإيرادات
   const handleExportRevenueReport = () => {
     const paidRevenues = getPaidRevenuesByCustomer();
@@ -2425,7 +2491,8 @@ function CarGarageManagement() {
     const totalPendingRevenue = Object.values(pendingRevenues).reduce((sum, item) => sum + item.totalPendingRevenue, 0);
     const totalRevenue = Object.values(totalRevenues).reduce((sum, item) => sum + item.totalRevenue, 0);
 
-    const rows = [
+    // الورقة الأولى: التقرير الرئيسي
+    const mainRows = [
       [t.revenueReport],
       [t.reportDate, new Date().toLocaleDateString()],
       [],
@@ -2440,7 +2507,7 @@ function CarGarageManagement() {
 
     let i = 1;
     Object.values(paidRevenues).forEach(item => {
-      rows.push([
+      mainRows.push([
         i++,
         item.customer.name,
         item.customer.phone,
@@ -2449,13 +2516,13 @@ function CarGarageManagement() {
       ]);
     });
 
-    rows.push([]);
-    rows.push([t.pendingRevenue]);
-    rows.push(['#', t.name, t.phone, t.servicesCount, t.pendingAmount]);
+    mainRows.push([]);
+    mainRows.push([t.pendingRevenue]);
+    mainRows.push(['#', t.name, t.phone, t.servicesCount, t.pendingAmount]);
 
     i = 1;
     Object.values(pendingRevenues).forEach(item => {
-      rows.push([
+      mainRows.push([
         i++,
         item.customer.name,
         item.customer.phone,
@@ -2464,9 +2531,10 @@ function CarGarageManagement() {
       ]);
     });
 
-    rows.push([]);
-    rows.push([language === 'ar' ? 'تفاصيل الخدمات المعلقة' : 'Pending Services Details']);
-    rows.push([
+    // الورقة الثانية: تفاصيل الخدمات المعلقة
+    const pendingServicesRows = [];
+    pendingServicesRows.push([language === 'ar' ? 'تفاصيل الخدمات المعلقة' : 'Pending Services Details']);
+    pendingServicesRows.push([
       language === 'ar' ? 'العميل' : 'Customer',
       language === 'ar' ? 'المركبة' : 'Vehicle',
       t.serviceType,
@@ -2482,7 +2550,7 @@ function CarGarageManagement() {
         const vehicleName = vehicle ? `${vehicle.make} ${vehicle.model}` : '-';
         const remaining = parseFloat(service.remaining_amount) || 0;
         
-        rows.push([
+        pendingServicesRows.push([
           item.customer.name,
           vehicleName,
           getServiceTypeLabel(service.type),
@@ -2494,7 +2562,12 @@ function CarGarageManagement() {
       });
     });
 
-    exportToCSV(rows, `revenue_report_${new Date().toISOString().split('T')[0]}`);
+    const sheets = {
+      [language === 'ar' ? 'التقرير العام' : 'General Report']: mainRows,
+      [language === 'ar' ? 'الخدمات المعلقة' : 'Pending Services']: pendingServicesRows
+    };
+
+    exportToExcel(sheets, `revenue_report_${new Date().toISOString().split('T')[0]}`);
   };
 
   // تصدير تقرير المركبة
