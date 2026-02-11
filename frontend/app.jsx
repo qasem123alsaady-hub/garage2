@@ -2702,6 +2702,264 @@ function CarGarageManagement() {
     exportToCSV(rows, `customer_report_${selectedCustomer.name}`);
   };
 
+  // تصدير تقرير الإدارة المالية
+  const handleExportFinancialReport = () => {
+    const start = new Date(financialDateRange.startDate);
+    const end = new Date(financialDateRange.endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const getStatusLabel = (status) => {
+        const statusMap = {
+            'pending': t.statusPending,
+            'in-service': t.statusInService,
+            'completed': t.statusCompleted,
+            'in-progress': t.statusInProgress,
+        };
+        return statusMap[status] || status;
+    };
+
+    const getServiceTypeLabelLocal = (typeKey) => {
+        return t[typeKey] || typeKey;
+    };
+
+    let data, reportTitle, headers, rows = [];
+
+    if (financialReportType === 'invoices') {
+        reportTitle = t.invoicesReport;
+        data = services.filter(s => {
+            const d = new Date(s.date);
+            return d >= start && d <= end;
+        });
+        
+        headers = ['#', t.date, t.invoiceId, t.customer, t.vehicle, t.serviceType, t.beforeTax, t.taxValue, t.afterTax, t.status];
+        rows.push(headers);
+
+        data.forEach((item, index) => {
+            const vehicle = vehicles.find(v => v.id === item.vehicle_id);
+            const customer = vehicle ? customers.find(c => c.id === vehicle.customer_id) : null;
+            const cost = parseFloat(item.cost || 0);
+            const subtotal = cost / 1.05;
+            const tax = cost - subtotal;
+            rows.push([
+                index + 1,
+                item.date,
+                item.id,
+                customer ? customer.name : '-',
+                vehicle ? `${vehicle.make} ${vehicle.model}` : '-',
+                getServiceTypeLabelLocal(item.type),
+                subtotal.toFixed(2),
+                tax.toFixed(2),
+                cost.toFixed(2),
+                getStatusLabel(item.status)
+            ]);
+        });
+
+    } else { // receipts
+        reportTitle = t.receiptsReport;
+        data = payments.filter(p => {
+            const d = new Date(p.payment_date);
+            return d >= start && d <= end;
+        });
+
+        headers = ['#', t.date, t.receiptId, t.customer, t.vehicle, t.paymentMethod, t.amount];
+        rows.push(headers);
+
+        data.forEach((item, index) => {
+            const service = services.find(s => s.id === item.service_id);
+            const vehicle = service ? vehicles.find(v => v.id === service.vehicle_id) : null;
+            const customer = vehicle ? customers.find(c => c.id === vehicle.customer_id) : null;
+            rows.push([
+                index + 1,
+                item.payment_date,
+                item.id,
+                customer ? customer.name : '-',
+                vehicle ? `${vehicle.make} ${vehicle.model}` : '-',
+                t[item.payment_method] || item.payment_method,
+                parseFloat(item.amount).toFixed(2)
+            ]);
+        });
+    }
+
+    const sheets = {
+        [reportTitle]: rows
+    };
+
+    exportToExcel(sheets, `${financialReportType}_report_${new Date().toISOString().split('T')[0]}`);
+  };
+
+  const handlePrintFinancialReport = () => {
+    const start = new Date(financialDateRange.startDate);
+    const end = new Date(financialDateRange.endDate);
+    end.setHours(23, 59, 59, 999);
+
+    let data, totalAmount, reportTitle, tableHeaders, tableRows, totalSubtotal = 0, totalTax = 0;
+
+    const getStatusLabel = (status) => {
+        const statusMap = {
+            'pending': t.statusPending,
+            'in-service': t.statusInService,
+            'completed': t.statusCompleted,
+            'in-progress': t.statusInProgress,
+        };
+        return statusMap[status] || status;
+    };
+
+    const getServiceTypeLabelLocal = (typeKey) => {
+        return t[typeKey] || typeKey;
+    };
+
+    if (financialReportType === 'invoices') {
+        reportTitle = t.invoicesReport;
+        data = services.filter(s => {
+            const d = new Date(s.date);
+            return d >= start && d <= end;
+        });
+        totalAmount = data.reduce((sum, item) => sum + parseFloat(item.cost || 0), 0);
+        totalSubtotal = totalAmount / 1.05;
+        totalTax = totalAmount - totalSubtotal;
+        
+        tableHeaders = `
+            <th>#</th>
+            <th>${t.date}</th>
+            <th>${t.invoiceId}</th>
+            <th>${t.customer}</th>
+            <th>${t.vehicle}</th>
+            <th>${t.serviceType}</th>
+            <th>${t.beforeTax}</th>
+            <th>${t.taxValue}</th>
+            <th>${t.afterTax}</th>
+            <th>${t.status}</th>
+        `;
+
+        tableRows = data.map((item, index) => {
+            const vehicle = vehicles.find(v => v.id === item.vehicle_id);
+            const customer = vehicle ? customers.find(c => c.id === vehicle.customer_id) : null;
+            const cost = parseFloat(item.cost || 0);
+            const subtotal = cost / 1.05;
+            const tax = cost - subtotal;
+            return `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.date}</td>
+                    <td>${item.id}</td>
+                    <td>${customer ? customer.name : '-'}</td>
+                    <td>${vehicle ? `${vehicle.make} ${vehicle.model}` : '-'}</td>
+                    <td>${getServiceTypeLabelLocal(item.type)}</td>
+                    <td>$${subtotal.toFixed(2)}</td>
+                    <td>$${tax.toFixed(2)}</td>
+                    <td class="amount-cell">$${cost.toFixed(2)}</td>
+                    <td><span class="status-badge status-${item.status}">${getStatusLabel(item.status)}</span></td>
+                </tr>
+            `;
+        }).join('');
+
+    } else { // receipts
+        reportTitle = t.receiptsReport;
+        data = payments.filter(p => {
+            const d = new Date(p.payment_date);
+            return d >= start && d <= end;
+        });
+        totalAmount = data.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+        tableHeaders = `
+            <th>#</th>
+            <th>${t.date}</th>
+            <th>${t.receiptId}</th>
+            <th>${t.customer}</th>
+            <th>${t.vehicle}</th>
+            <th>${t.paymentMethod}</th>
+            <th>${t.amount}</th>
+        `;
+
+        tableRows = data.map((item, index) => {
+            const service = services.find(s => s.id === item.service_id);
+            const vehicle = service ? vehicles.find(v => v.id === service.vehicle_id) : null;
+            const customer = vehicle ? customers.find(c => c.id === vehicle.customer_id) : null;
+            return `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${item.payment_date}</td>
+                    <td>${item.id}</td>
+                    <td>${customer ? customer.name : '-'}</td>
+                    <td>${vehicle ? `${vehicle.make} ${vehicle.model}` : '-'}</td>
+                    <td>${t[item.payment_method] || item.payment_method}</td>
+                    <td class="amount-cell">$${parseFloat(item.amount).toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    const dateRangeText = `${t.fromDate} ${financialDateRange.startDate} ${t.toDate} ${financialDateRange.endDate}`;
+
+    const reportContent = `
+      <!DOCTYPE html>
+      <html dir="${language === 'ar' ? 'rtl' : 'ltr'}">
+      <head>
+          <meta charset="UTF-8">
+          <base href="${window.location.origin}${window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1)}">
+          <title>${reportTitle}</title>
+          <style>
+              body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; line-height: 1.6; }
+              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+              .date-range { background: #f8f9fa; padding: 10px; border-radius: 5px; margin: 20px 0; text-align: center; font-weight: bold; }
+              table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: ${language === 'ar' ? 'right' : 'left'}; }
+              th { background-color: #f2f2f2; font-weight: bold; }
+              .total-row { font-weight: bold; background-color: #f0fdf4; font-size: 14px; }
+              .amount-cell { font-weight: bold; color: #16a34a; }
+              .status-badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; color: white; }
+              .status-completed { background: #16a34a; }
+              .status-in-service { background: #ea580c; }
+              .status-pending { background: #1d4ed8; }
+              @media print {
+                  .no-print { display: none; }
+                  body { margin: 0; }
+              }
+          </style>
+      </head>
+      <body>
+          <div class="header">
+              <img src="${t.logo}" alt="Logo" style="height: 80px; margin-bottom: 10px;" onerror="this.style.display='none'; this.insertAdjacentHTML('afterend', '<div style=\\'font-size:60px; margin-bottom: 10px;\\'>🚗</div>');">
+              <h1>${reportTitle}</h1>
+              <p>${t.reportDate}: ${new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US')}</p>
+              <div class="date-range">${dateRangeText}</div>
+          </div>
+          
+          <table>
+              <thead>
+                  <tr>${tableHeaders}</tr>
+              </thead>
+              <tbody>
+                  ${tableRows}
+              </tbody>
+              <tfoot>
+                  <tr class="total-row">
+                      <td colspan="${financialReportType === 'invoices' ? '6' : '6'}" style="text-align: center;">${t.totalAmount}</td>
+                      ${financialReportType === 'invoices' ? `
+                        <td>$${totalSubtotal.toFixed(2)}</td>
+                        <td>$${totalTax.toFixed(2)}</td>
+                        <td class="amount-cell">$${totalAmount.toFixed(2)}</td>
+                        <td></td>
+                      ` : `
+                        <td class="amount-cell">$${totalAmount.toFixed(2)}</td>
+                      `}
+                  </tr>
+              </tfoot>
+          </table>
+          
+          <div class="no-print" style="margin-top: 30px; text-align: center;">
+              <button onclick="window.print()">Print</button>
+              <button onclick="window.close()">Close</button>
+          </div>
+      </body>
+      </html>
+    `;
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(reportContent);
+    printWindow.document.close();
+  };
+
   // دالة لطباعة تقرير الإيرادات
   const handlePrintRevenueReport = () => {
     const paidRevenues = getPaidRevenuesByCustomer();
