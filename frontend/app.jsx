@@ -2390,7 +2390,6 @@ function CarGarageManagement() {
     
     return totalRevenues;
   };
-
   // دالة تصدير البيانات إلى CSV (Excel)
   const exportToCSV = (rows, filename) => {
     const processRow = (row) => {
@@ -2463,6 +2462,36 @@ function CarGarageManagement() {
         item.servicesCount,
         item.totalPendingRevenue.toFixed(2)
       ]);
+    });
+
+    rows.push([]);
+    rows.push([language === 'ar' ? 'تفاصيل الخدمات المعلقة' : 'Pending Services Details']);
+    rows.push([
+      language === 'ar' ? 'العميل' : 'Customer',
+      language === 'ar' ? 'المركبة' : 'Vehicle',
+      t.serviceType,
+      t.date,
+      t.cost,
+      t.paid,
+      t.remaining
+    ]);
+
+    Object.values(pendingRevenues).forEach(item => {
+      item.services.forEach(service => {
+        const vehicle = vehicles.find(v => v.id === service.vehicle_id);
+        const vehicleName = vehicle ? `${vehicle.make} ${vehicle.model}` : '-';
+        const remaining = parseFloat(service.remaining_amount) || 0;
+        
+        rows.push([
+          item.customer.name,
+          vehicleName,
+          getServiceTypeLabel(service.type),
+          service.date,
+          service.cost,
+          service.amount_paid || 0,
+          remaining.toFixed(2)
+        ]);
+      });
     });
 
     exportToCSV(rows, `revenue_report_${new Date().toISOString().split('T')[0]}`);
