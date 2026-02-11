@@ -5533,7 +5533,14 @@ function CarGarageManagement() {
 
               <div className="form-actions" style={{marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '16px'}}>
                 <button className="btn btn-outline" onClick={() => setIsFinancialManagerOpen(false)}>{t.close}</button>
-                <button className="btn btn-primary" onClick={() => window.print()}>🖨️ {t.printReport}</button>
+                <button 
+                  className="btn btn-success" 
+                  onClick={handleExportFinancialReport}
+                  style={{background: '#10b981', color: 'white', border: 'none'}}
+                >
+                  📊 Excel
+                </button>
+                <button className="btn btn-primary" onClick={handlePrintFinancialReport}>🖨️ {t.printReport}</button>
               </div>
             </div>
           </div>
