@@ -2391,6 +2391,169 @@ function CarGarageManagement() {
     return totalRevenues;
   };
 
+  // دالة تصدير البيانات إلى CSV (Excel)
+  const exportToCSV = (rows, filename) => {
+    const processRow = (row) => {
+      return row.map(val => {
+        if (val === null || val === undefined) return '';
+        let result = String(val).replace(/"/g, '""');
+        if (result.search(/("|,|\n)/g) >= 0) {
+          result = '"' + result + '"';
+        }
+        return result;
+      }).join(',');
+    };
+
+    const csvContent = '\uFEFF' + rows.map(processRow).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename + ".csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // تصدير تقرير الإيرادات
+  const handleExportRevenueReport = () => {
+    const paidRevenues = getPaidRevenuesByCustomer();
+    const pendingRevenues = getPendingRevenuesByCustomer();
+    const totalRevenues = getTotalRevenuesByCustomer();
+    
+    const totalPaidRevenue = Object.values(paidRevenues).reduce((sum, item) => sum + item.totalPaidRevenue, 0);
+    const totalPendingRevenue = Object.values(pendingRevenues).reduce((sum, item) => sum + item.totalPendingRevenue, 0);
+    const totalRevenue = Object.values(totalRevenues).reduce((sum, item) => sum + item.totalRevenue, 0);
+
+    const rows = [
+      [t.revenueReport],
+      [t.reportDate, new Date().toLocaleDateString()],
+      [],
+      [t.revenueReportTitle],
+      [t.totalRevenue, totalRevenue.toFixed(2)],
+      [t.paidRevenue, totalPaidRevenue.toFixed(2)],
+      [t.pendingRevenue, totalPendingRevenue.toFixed(2)],
+      [],
+      [t.paidRevenue],
+      ['#', t.name, t.phone, t.servicesCount, t.paidAmount]
+    ];
+
+    let i = 1;
+    Object.values(paidRevenues).forEach(item => {
+      rows.push([
+        i++,
+        item.customer.name,
+        item.customer.phone,
+        item.servicesCount,
+        item.totalPaidRevenue.toFixed(2)
+      ]);
+    });
+
+    rows.push([]);
+    rows.push([t.pendingRevenue]);
+    rows.push(['#', t.name, t.phone, t.servicesCount, t.pendingAmount]);
+
+    i = 1;
+    Object.values(pendingRevenues).forEach(item => {
+      rows.push([
+        i++,
+        item.customer.name,
+        item.customer.phone,
+        item.servicesCount,
+        item.totalPendingRevenue.toFixed(2)
+      ]);
+    });
+
+    exportToCSV(rows, `revenue_report_${new Date().toISOString().split('T')[0]}`);
+  };
+
+  // تصدير تقرير المركبة
+  const handleExportVehicleReport = () => {
+    if (!selectedVehicle) return;
+    const filteredServices = getFilteredServicesForVehicle(selectedVehicle.id);
+    const customer = getCustomerById(selectedVehicle.customer_id);
+    
+    const rows = [
+      [t.vehicleReport],
+      [t.reportDate, new Date().toLocaleDateString()],
+      [],
+      [t.vehicleInfo],
+      [t.makeModel, `${selectedVehicle.make} ${selectedVehicle.model}`],
+      [t.year, selectedVehicle.year],
+      [t.licensePlate, selectedVehicle.license_plate],
+      [t.status, selectedVehicle.status],
+      [],
+      [t.customerInfo],
+      [t.name, customer ? customer.name : '-'],
+      [t.phone, customer ? customer.phone : '-'],
+      [],
+      [t.serviceHistory],
+      [t.serviceType, t.date, t.technician, t.status, t.paymentStatus, t.cost, t.paid, t.remaining]
+    ];
+
+    filteredServices.forEach(service => {
+      rows.push([
+        getServiceTypeLabel(service.type),
+        service.date,
+        service.technician,
+        service.status,
+        service.payment_status,
+        service.cost,
+        service.amount_paid || 0,
+        service.remaining_amount || service.cost
+      ]);
+    });
+
+    rows.push([]);
+    rows.push([t.totalCost, getFilteredTotalCostForVehicle(selectedVehicle.id).toFixed(2)]);
+
+    exportToCSV(rows, `vehicle_report_${selectedVehicle.license_plate}`);
+  };
+
+  // تصدير تقرير العميل
+  const handleExportCustomerReport = () => {
+    if (!selectedCustomer) return;
+    const customerStats = getCustomerStats(selectedCustomer.id);
+    const filteredServices = getFilteredCustomerServices(selectedCustomer.id);
+
+    const rows = [
+      [t.customerReport],
+      [t.reportDate, new Date().toLocaleDateString()],
+      [],
+      [t.customerInfo],
+      [t.name, selectedCustomer.name],
+      [t.phone, selectedCustomer.phone],
+      [t.email, selectedCustomer.email || '-'],
+      [],
+      [t.customerStats],
+      [t.totalVehicles, customerStats.totalVehicles],
+      [t.totalServices, customerStats.totalServices],
+      [t.totalCost, customerStats.totalCost.toFixed(2)],
+      [t.totalPaid, customerStats.totalPaid.toFixed(2)],
+      [t.amountDue, customerStats.filteredRemaining.toFixed(2)],
+      [],
+      [t.serviceHistory],
+      [t.vehicles, t.serviceType, t.date, t.technician, t.cost, t.paid, t.remaining]
+    ];
+
+    filteredServices.forEach(service => {
+      const vehicle = vehicles.find(v => v.id === service.vehicle_id);
+      const vehicleName = vehicle ? `${vehicle.make} ${vehicle.model}` : '-';
+      rows.push([
+        vehicleName,
+        getServiceTypeLabel(service.type),
+        service.date,
+        service.technician,
+        service.cost,
+        service.amount_paid || 0,
+        service.remaining_amount || service.cost
+      ]);
+    });
+
+    exportToCSV(rows, `customer_report_${selectedCustomer.name}`);
+  };
+
   // دالة لطباعة تقرير الإيرادات
   const handlePrintRevenueReport = () => {
     const paidRevenues = getPaidRevenuesByCustomer();
@@ -5005,6 +5168,15 @@ function CarGarageManagement() {
                 >
                   {t.close}
                 </button>
+                {currentUser?.role === 'admin' && (
+                  <button 
+                    className="btn btn-success" 
+                    onClick={handleExportRevenueReport}
+                    style={{background: '#10b981', color: 'white', border: 'none', marginInlineEnd: '8px'}}
+                  >
+                    📊 Excel
+                  </button>
+                )}
                 <button 
                   className="btn btn-purple" 
                   onClick={handlePrintRevenueReport}
@@ -6385,6 +6557,16 @@ function CarGarageManagement() {
                 >
                   {t.close}
                 </button>
+                {currentUser?.role === 'admin' && (
+                  <button 
+                    className="btn btn-success" 
+                    onClick={handleExportVehicleReport}
+                    disabled={getFilteredServicesForVehicle(selectedVehicle.id).length === 0}
+                    style={{display: 'flex', alignItems: 'center', gap: '8px', background: '#10b981', color: 'white', border: 'none', marginInlineEnd: '8px'}}
+                  >
+                    <span>📊</span> Excel
+                  </button>
+                )}
                 <button 
                   className="btn btn-primary" 
                   onClick={handlePrintVehicleReport}
@@ -6670,6 +6852,16 @@ function CarGarageManagement() {
                 >
                   {t.close}
                 </button>
+                {currentUser?.role === 'admin' && (
+                  <button 
+                    className="btn btn-success" 
+                    onClick={handleExportCustomerReport}
+                    disabled={getFilteredCustomerServices(selectedCustomer.id).length === 0}
+                    style={{display: 'flex', alignItems: 'center', gap: '8px', background: '#10b981', color: 'white', border: 'none', marginInlineEnd: '8px'}}
+                  >
+                    <span>📊</span> Excel
+                  </button>
+                )}
                 <button 
                   className="btn btn-primary" 
                   onClick={handlePrintCustomerReport}
