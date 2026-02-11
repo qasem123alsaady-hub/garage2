@@ -2562,9 +2562,47 @@ function CarGarageManagement() {
       });
     });
 
+    // الورقة الثالثة: تفاصيل الخدمات المكتملة
+    const completedServicesRows = [];
+    completedServicesRows.push([language === 'ar' ? 'تفاصيل الخدمات المكتملة' : 'Completed Services Details']);
+    completedServicesRows.push([
+      language === 'ar' ? 'العميل' : 'Customer',
+      language === 'ar' ? 'المركبة' : 'Vehicle',
+      t.serviceType,
+      t.date,
+      t.cost,
+      t.paid,
+      t.remaining
+    ]);
+
+    customers.forEach(customer => {
+      const customerServices = getCustomerServices(customer.id);
+      const filteredServices = customerServices.filter(service => {
+        if (service.status !== 'completed') return false;
+        
+        if (!revenueReportDateRange.startDate && !revenueReportDateRange.endDate) return true;
+        
+        const serviceDate = new Date(service.date);
+        const startDate = revenueReportDateRange.startDate ? new Date(revenueReportDateRange.startDate) : new Date('1900-01-01');
+        const endDate = revenueReportDateRange.endDate ? new Date(revenueReportDateRange.endDate) : new Date();
+        endDate.setHours(23, 59, 59, 999);
+        
+        return serviceDate >= startDate && serviceDate <= endDate;
+      });
+
+      filteredServices.forEach(service => {
+        const vehicle = vehicles.find(v => v.id === service.vehicle_id);
+        const vehicleName = vehicle ? `${vehicle.make} ${vehicle.model}` : '-';
+        const remaining = parseFloat(service.remaining_amount) || 0;
+        
+        completedServicesRows.push([customer.name, vehicleName, getServiceTypeLabel(service.type), service.date, service.cost, service.amount_paid || 0, remaining.toFixed(2)]);
+      });
+    });
+
     const sheets = {
       [language === 'ar' ? 'التقرير العام' : 'General Report']: mainRows,
-      [language === 'ar' ? 'الخدمات المعلقة' : 'Pending Services']: pendingServicesRows
+      [language === 'ar' ? 'الخدمات المعلقة' : 'Pending Services']: pendingServicesRows,
+      [language === 'ar' ? 'الخدمات المكتملة' : 'Completed Services']: completedServicesRows
     };
 
     exportToExcel(sheets, `revenue_report_${new Date().toISOString().split('T')[0]}`);
