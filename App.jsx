@@ -1220,7 +1220,7 @@ const userPermissions = {
   // دوال إدارة المستخدمين (الفنيين)
   const fetchTechnicians = async () => {
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php?role=technician');
+      const response = await fetch(`${API_BASE}/users.php?role=technician`);
       if (response.ok) {
         const data = await response.json();
         setTechnicians(data.users || []);
@@ -1685,7 +1685,7 @@ const userPermissions = {
         return;
       }
 
-      const response = await fetch(`http://localhost/car-garage/backend/api/vehicles.php?id=${selectedVehicle.id}`, {
+      const response = await fetch(`${API_BASE}/vehicles.php?id=${selectedVehicle.id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -1782,7 +1782,7 @@ const userPermissions = {
         return;
       }
 
-      const response = await fetch(`http://localhost/car-garage/backend/api/services.php`, {
+      const response = await fetch(`${API_BASE}/services.php`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -1869,7 +1869,7 @@ const userPermissions = {
   // دالة جلب الدفعات
   const fetchPayments = async (serviceId) => {
     try {
-      const response = await fetch(`http://localhost/car-garage/backend/api/payments.php?service_id=${serviceId}`);
+      const response = await fetch(`${API_BASE}/payments.php?service_id=${serviceId}`);
       if (response.ok) {
         const paymentsData = await response.json();
         setPayments(paymentsData);
@@ -2062,7 +2062,7 @@ const userPermissions = {
     if (!confirm(t.confirmVehicleDelete)) return;
     
     try {
-      const response = await fetch(`http://localhost/car-garage/backend/api/vehicles.php?id=${vehicleId}`, {
+      const response = await fetch(`${API_BASE}/vehicles.php?id=${vehicleId}`, {
         method: 'DELETE',
       });
 
