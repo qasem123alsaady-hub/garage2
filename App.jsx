@@ -904,7 +904,7 @@ const userPermissions = {
   // دالة محسنة لجلب البيانات
   const fetchData = async () => {
     try {
-      const API_BASE = 'https://car-garage.infinityfreeapp.com/backend/api';
+      const API_BASE = 'http://car-garage.infinityfreeapp.com/backend/api';
       
       const [customersResult, vehiclesResult, servicesResult, paymentsResult, usersResult] = await Promise.allSettled([
         fetch(`${API_BASE}/customers.php`).then(res => res.ok ? res.json() : []).catch(() => []),
