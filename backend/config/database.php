@@ -1,7 +1,7 @@
 <?php
 class Database {
-    private $host = "localhost";
-    private $db_name = "garage";
+    private $host = "sql304.infinityfree.com";
+    private $db_name = "if0_40726306_garage";
     private $username = "if0_40726306";
     private $password = "QhDFUWoTIAL";
     public $conn;
