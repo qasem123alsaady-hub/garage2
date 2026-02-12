@@ -904,7 +904,7 @@ const userPermissions = {
   // دالة محسنة لجلب البيانات
   const fetchData = async () => {
     try {
-      const API_BASE = 'http://localhost/car-garage/backend/api';
+      const API_BASE = 'https://car-garage.infinityfreeapp.com/backend/api';
       
       const [customersResult, vehiclesResult, servicesResult, paymentsResult, usersResult] = await Promise.allSettled([
         fetch(`${API_BASE}/customers.php`).then(res => res.ok ? res.json() : []).catch(() => []),
@@ -959,7 +959,7 @@ const userPermissions = {
     e.preventDefault();
     
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/auth.php', {
+      const response = await fetch(`${API_BASE}/auth.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1044,7 +1044,7 @@ const userPermissions = {
         return;
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/customers.php', {
+      const response = await fetch(`${API_BASE}/customers.php`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -1138,7 +1138,7 @@ const userPermissions = {
         return;
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/customers.php', {
+      const response = await fetch(`${API_BASE}/customers.php`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -1255,7 +1255,7 @@ const userPermissions = {
         return;
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php', {
+      const response = await fetch(`${API_BASE}/users.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1300,7 +1300,7 @@ const userPermissions = {
         return;
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php', {
+      const response = await fetch(`${API_BASE}/users.php`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1339,7 +1339,7 @@ const userPermissions = {
     }
     
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php', {
+      const response = await fetch(`${API_BASE}/users.php`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1380,7 +1380,7 @@ const userPermissions = {
     try {
       console.log('🔄 جاري جلب جميع المستخدمين من قاعدة البيانات...');
       
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php', {
+      const response = await fetch(`${API_BASE}/users.php`, {
         method: 'GET',
         headers: { 
           'Content-Type': 'application/json',
@@ -1476,7 +1476,7 @@ const userPermissions = {
         password: resetPasswordData.newPassword
       });
       
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php', {
+      const response = await fetch(`${API_BASE}/users.php`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1531,7 +1531,7 @@ const userPermissions = {
     }
     
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/users.php', {
+      const response = await fetch(`${API_BASE}/users.php`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1585,7 +1585,7 @@ const userPermissions = {
         return;
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/vehicles.php', {
+      const response = await fetch(`${API_BASE}/vehicles.php`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -1927,7 +1927,7 @@ const userPermissions = {
         notes: editSinglePaymentData.notes || ''
       };
 
-      const response = await fetch('http://localhost/car-garage/backend/api/payments.php', {
+      const response = await fetch(`${API_BASE}/payments.php`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -1981,7 +1981,7 @@ const userPermissions = {
     if (!confirm(t.confirmDelete)) return;
     
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/payments.php', {
+      const response = await fetch(`${API_BASE}/payments.php`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -2023,7 +2023,7 @@ const userPermissions = {
     if (!confirm(t.confirmServiceDelete)) return;
     
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/services.php', {
+      const response = await fetch(`${API_BASE}/services.php`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -2103,7 +2103,7 @@ const userPermissions = {
     if (!confirm(t.confirmCustomerDelete)) return;
     
     try {
-      const response = await fetch('http://localhost/car-garage/backend/api/customers.php', {
+      const response = await fetch(`${API_BASE}/customers.php`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -2180,7 +2180,7 @@ const userPermissions = {
         payment_date: new Date().toISOString().split('T')[0]
       };
 
-      const response = await fetch('http://localhost/car-garage/backend/api/payments.php', {
+      const response = await fetch(`${API_BASE}/payments.php`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -2275,7 +2275,7 @@ const userPermissions = {
             payment_date: new Date().toISOString().split('T')[0]
           };
 
-          const response = await fetch('http://localhost/car-garage/backend/api/payments.php', {
+          const response = await fetch(`${API_BASE}/payments.php`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
@@ -2323,7 +2323,7 @@ const userPermissions = {
             payment_date: new Date().toISOString().split('T')[0]
           };
 
-          const response = await fetch('http://localhost/car-garage/backend/api/payments.php', {
+          const response = await fetch(`${API_BASE}/payments.php`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
