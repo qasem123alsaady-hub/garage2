@@ -17,17 +17,15 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 $database = new Database();
 $db = $database->getConnection();
 
-// تحديد نوع التقرير المطلوب والفلترة
+// تحديد نوع التقرير المطلوب
 $type = isset($_GET['type']) ? $_GET['type'] : 'revenue';
-$startDate = isset($_GET['start_date']) ? $_GET['start_date'] : null;
-$endDate = isset($_GET['end_date']) ? $_GET['end_date'] : null;
 
-// إعداد المتغيرات الأساسية لملف Excel
+// إعداد المتغيرات الأساسية
 $spreadsheet = new Spreadsheet();
 $sheet = $spreadsheet->getActiveSheet();
 $sheet->setRightToLeft(true); // اتجاه الورقة من اليمين لليسار
@@ -36,21 +34,6 @@ $data = [];
 $headers = [];
 $title = "";
 $fileName = "Report";
-
-// إعداد شرط التاريخ للاستعلامات
-$dateCondition = "";
-$params = [];
-if ($startDate && $endDate) {
-    $dateCondition = " WHERE s.date BETWEEN :start_date AND :end_date";
-    $params[':start_date'] = $startDate;
-    $params[':end_date'] = $endDate;
-} elseif ($startDate) {
-    $dateCondition = " WHERE s.date >= :start_date";
-    $params[':start_date'] = $startDate;
-} elseif ($endDate) {
-    $dateCondition = " WHERE s.date <= :end_date";
-    $params[':end_date'] = $endDate;
-}
 
 // --- جلب البيانات بناءً على نوع التقرير ---
 
@@ -62,14 +45,9 @@ if ($type == 'revenue') {
     $query = "SELECT s.date, c.name as customer_name, v.make, v.model, v.license_plate, s.type as service_type, s.cost, s.amount_paid, s.remaining_amount, s.payment_status 
               FROM services s 
               LEFT JOIN vehicles v ON s.vehicle_id = v.id 
-              LEFT JOIN customers c ON v.customer_id = c.id" . 
-              $dateCondition . 
-              " ORDER BY s.date DESC";
-              
+              LEFT JOIN customers c ON v.customer_id = c.id 
+              ORDER BY s.date DESC";
     $stmt = $db->prepare($query);
-    foreach ($params as $key => $val) {
-        $stmt->bindValue($key, $val);
-    }
     $stmt->execute();
     
     $i = 1;
@@ -102,14 +80,9 @@ if ($type == 'revenue') {
     $query = "SELECT s.*, v.make, v.model, v.license_plate, c.name as customer_name 
               FROM services s 
               LEFT JOIN vehicles v ON s.vehicle_id = v.id 
-              LEFT JOIN customers c ON v.customer_id = c.id" . 
-              $dateCondition . 
-              " ORDER BY s.date DESC";
-              
+              LEFT JOIN customers c ON v.customer_id = c.id 
+              ORDER BY s.date DESC";
     $stmt = $db->prepare($query);
-    foreach ($params as $key => $val) {
-        $stmt->bindValue($key, $val);
-    }
     $stmt->execute();
     
     $i = 1;
@@ -190,8 +163,7 @@ if ($type == 'revenue') {
 // --- التنسيق الجمالي (Styling) ---
 
 // 1. العنوان الرئيسي
-$lastColLetter = Coordinate::stringFromColumnIndex(count($headers));
-$sheet->mergeCells('A1:' . $lastColLetter . '2');
+$sheet->mergeCells('A1:' . chr(64 + count($headers)) . '2');
 $sheet->setCellValue('A1', $title);
 $titleStyle = [
     'font' => ['bold' => true, 'size' => 18, 'color' => ['argb' => 'FF2c3e50']],
