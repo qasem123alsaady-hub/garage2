@@ -4775,29 +4775,39 @@ function CarGarageManagement() {
     <div className="min-h-screen" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <style>{`
         @media (max-width: 768px) {
+          /* Header Improvements */
+          .header { padding: 10px 0; }
           .header-content { flex-direction: column; gap: 10px; }
-          .header-actions { flex-wrap: wrap; justify-content: center; }
-          .header-actions .btn { margin-bottom: 5px; flex-grow: 1; justify-content: center; }
-          .search-container { flex-direction: column; gap: 10px; }
+          .header-actions { width: 100%; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; justify-content: center; }
+          .header-actions .btn { margin: 0; width: 100%; justify-content: center; font-size: 13px; padding: 8px; }
+          .user-info { width: 100%; justify-content: center; margin-bottom: 5px; flex-direction: column; align-items: center; gap: 5px; }
+          
+          .search-container { flex-direction: column; gap: 10px; margin-top: 10px; }
           .search-box { width: 100%; }
+          
+          /* Layout */
           .main-content { flex-direction: column; }
           .sidebar { width: 100%; border-right: none; border-left: none; border-bottom: 1px solid #eee; margin-bottom: 20px; padding-bottom: 20px; }
           .detail-content { width: 100%; padding: 0; }
-          .stats-grid { grid-template-columns: 1fr 1fr; }
+          .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
           
           /* Modals Responsive */
-          .modal { width: 95% !important; max-width: 95% !important; margin: 10px auto; max-height: 90vh; }
+          .modal { width: 95% !important; max-width: 95% !important; margin: 10px auto; max-height: 90vh; display: flex; flex-direction: column; }
+          .modal-header { padding: 12px; flex-shrink: 0; }
+          .modal-body { padding: 15px; overflow-y: auto; flex: 1; }
+          .modal-body-scrollable { flex: 1; overflow-y: auto; }
           
           /* Admin Modal Responsive */
-          .admin-modal-body { flex-direction: column !important; }
+          .admin-modal-body { flex-direction: column !important; padding: 10px !important; }
           .admin-users-list { 
             flex: none !important; 
             width: 100% !important; 
             border-right: none !important; 
             border-left: none !important; 
             border-bottom: 1px solid #eee; 
-            max-height: 200px; 
-            margin-bottom: 20px; 
+            max-height: 150px; 
+            margin-bottom: 15px; 
+            padding: 0 0 15px 0 !important;
           }
           .admin-user-details { padding: 0 !important; }
           
@@ -4811,12 +4821,14 @@ function CarGarageManagement() {
             border-left: none !important; 
             border-bottom: 1px solid #eee; 
             padding: 10px !important; 
+            gap: 10px;
           }
-          .financial-sidebar .btn { min-width: 140px; }
+          .financial-sidebar .btn { min-width: 120px; flex-shrink: 0; }
           .financial-content { padding: 15px !important; }
           
           /* Tables */
           table { display: block; overflow-x: auto; white-space: nowrap; }
+          th, td { padding: 8px 10px; }
         }
       `}</style>
       <PrintHeader t={t} />
