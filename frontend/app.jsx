@@ -4789,10 +4789,21 @@ function CarGarageManagement() {
           .main-content { flex-direction: column; }
           .sidebar { width: 100%; border-right: none; border-left: none; border-bottom: 1px solid #eee; margin-bottom: 20px; padding-bottom: 20px; }
           .detail-content { width: 100%; padding: 0; }
+          
+          /* Mobile Master-Detail Toggle */
+          .main-content.has-selection .sidebar { display: none; }
+          .main-content:not(.has-selection) .detail-content { display: none; }
+          .main-content.has-selection .detail-content { display: block; }
+          
+          .mobile-back-btn { display: flex !important; align-items: center; gap: 5px; margin-bottom: 15px; padding: 8px 15px; background: #f3f4f6; border-radius: 8px; border: 1px solid #e5e7eb; width: fit-content; cursor: pointer; font-weight: bold; color: #4b5563; }
+          
           .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+          .detail-grid { display: flex; flex-direction: column; gap: 20px; }
+          .info-grid { grid-template-columns: 1fr; }
           
           /* Modals Responsive */
-          .modal { width: 95% !important; max-width: 95% !important; margin: 10px auto; max-height: 90vh; display: flex; flex-direction: column; }
+          .modal-overlay { padding: 0 !important; align-items: flex-start !important; }
+          .modal { width: 100% !important; max-width: 100% !important; margin: 0; height: 100%; max-height: 100vh; border-radius: 0; display: flex; flex-direction: column; }
           .modal-header { padding: 12px; flex-shrink: 0; }
           .modal-body { padding: 15px; overflow-y: auto; flex: 1; }
           .modal-body-scrollable { flex: 1; overflow-y: auto; }
@@ -4829,6 +4840,9 @@ function CarGarageManagement() {
           /* Tables */
           table { display: block; overflow-x: auto; white-space: nowrap; }
           th, td { padding: 8px 10px; }
+        }
+        @media (min-width: 769px) {
+          .mobile-back-btn { display: none; }
         }
       `}</style>
       <PrintHeader t={t} />
@@ -5041,7 +5055,7 @@ function CarGarageManagement() {
 
       {/* المحتوى الرئيسي */}
       <div className="container">
-        <div className="main-content">
+        <div className={`main-content ${(selectedVehicle || selectedCustomer) ? 'has-selection' : ''}`}>
           {/* القائمة الجانبية */}
           <div className="sidebar">
             {hasPermission('canViewAllVehicles') && (
@@ -5190,6 +5204,9 @@ function CarGarageManagement() {
             {selectedVehicle ? (
               <>
                 {/* الهيدر التفصيلي */}
+                <div className="mobile-back-btn" onClick={() => { setSelectedVehicle(null); setSelectedCustomer(null); }}>
+                  <span>{language === 'ar' ? '➡️' : '⬅️'}</span> {language === 'ar' ? 'العودة للقائمة' : 'Back to List'}
+                </div>
                 <div className="detail-header">
                   <div>
                     <h2 className="detail-title">
@@ -5425,6 +5442,9 @@ function CarGarageManagement() {
             ) : selectedCustomer ? (
               <>
                 {/* هيدر تفاصيل العميل */}
+                <div className="mobile-back-btn" onClick={() => { setSelectedVehicle(null); setSelectedCustomer(null); }}>
+                  <span>{language === 'ar' ? '➡️' : '⬅️'}</span> {language === 'ar' ? 'العودة للقائمة' : 'Back to List'}
+                </div>
                 <div className="detail-header">
                   <div>
                     <h2 className="detail-title">
