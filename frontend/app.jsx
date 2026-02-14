@@ -4773,6 +4773,52 @@ function CarGarageManagement() {
   // إذا كان المستخدم مسجل الدخول، عرض التطبيق الرئيسي
   return (
     <div className="min-h-screen" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <style>{`
+        @media (max-width: 768px) {
+          .header-content { flex-direction: column; gap: 10px; }
+          .header-actions { flex-wrap: wrap; justify-content: center; }
+          .header-actions .btn { margin-bottom: 5px; flex-grow: 1; justify-content: center; }
+          .search-container { flex-direction: column; gap: 10px; }
+          .search-box { width: 100%; }
+          .main-content { flex-direction: column; }
+          .sidebar { width: 100%; border-right: none; border-left: none; border-bottom: 1px solid #eee; margin-bottom: 20px; padding-bottom: 20px; }
+          .detail-content { width: 100%; padding: 0; }
+          .stats-grid { grid-template-columns: 1fr 1fr; }
+          
+          /* Modals Responsive */
+          .modal { width: 95% !important; max-width: 95% !important; margin: 10px auto; max-height: 90vh; }
+          
+          /* Admin Modal Responsive */
+          .admin-modal-body { flex-direction: column !important; }
+          .admin-users-list { 
+            flex: none !important; 
+            width: 100% !important; 
+            border-right: none !important; 
+            border-left: none !important; 
+            border-bottom: 1px solid #eee; 
+            max-height: 200px; 
+            margin-bottom: 20px; 
+          }
+          .admin-user-details { padding: 0 !important; }
+          
+          /* Financial Modal Responsive */
+          .financial-modal-body { flex-direction: column !important; }
+          .financial-sidebar { 
+            width: 100% !important; 
+            flex-direction: row !important; 
+            overflow-x: auto; 
+            border-right: none !important; 
+            border-left: none !important; 
+            border-bottom: 1px solid #eee; 
+            padding: 10px !important; 
+          }
+          .financial-sidebar .btn { min-width: 140px; }
+          .financial-content { padding: 15px !important; }
+          
+          /* Tables */
+          table { display: block; overflow-x: auto; white-space: nowrap; }
+        }
+      `}</style>
       <PrintHeader t={t} />
       {/* الهيدر */}
       <header className="header" style={{position: 'relative'}}>
@@ -6156,9 +6202,9 @@ function CarGarageManagement() {
                 ❌
               </button>
             </div>
-            <div className="modal-body" style={{display: 'flex', flex: 1, overflow: 'hidden', padding: 0}}>
+            <div className="modal-body financial-modal-body" style={{display: 'flex', flex: 1, overflow: 'hidden', padding: 0}}>
               {/* Sidebar */}
-              <div style={{
+              <div className="financial-sidebar" style={{
                 width: '250px',
                 backgroundColor: '#f8fafc',
                 borderRight: language === 'ar' ? 'none' : '1px solid #e2e8f0',
@@ -6227,7 +6273,7 @@ function CarGarageManagement() {
               </div>
               
               {/* Content Area */}
-              <div style={{flex: 1, padding: '30px', overflowY: 'auto'}}>
+              <div className="financial-content" style={{flex: 1, padding: '30px', overflowY: 'auto'}}>
                 {activeFinancialTab === 'mainFund' && (
                   <div>
                     <h3 style={{fontSize: '20px', fontWeight: 'bold', marginBottom: '20px', color: '#1f2937', borderBottom: '1px solid #e5e7eb', paddingBottom: '10px'}}>
@@ -8960,9 +9006,9 @@ function CarGarageManagement() {
             </div>
             
             {/* محتوى الصفحة */}
-            <div className="modal-body" style={{display: 'flex', gap: '20px', flex: 1, overflow: 'hidden', padding: '20px'}}>
+            <div className="modal-body admin-modal-body" style={{display: 'flex', gap: '20px', flex: 1, overflow: 'hidden', padding: '20px'}}>
               {/* قائمة المستخدمين */}
-              <div style={{flex: '0 0 30%', borderRight: language === 'ar' ? 'none' : '1px solid #e5e7eb', borderLeft: language === 'ar' ? '1px solid #e5e7eb' : 'none', overflowY: 'auto', paddingRight: language === 'ar' ? '0' : '16px', paddingLeft: language === 'ar' ? '16px' : '0'}}>
+              <div className="admin-users-list" style={{flex: '0 0 30%', borderRight: language === 'ar' ? 'none' : '1px solid #e5e7eb', borderLeft: language === 'ar' ? '1px solid #e5e7eb' : 'none', overflowY: 'auto', paddingRight: language === 'ar' ? '0' : '16px', paddingLeft: language === 'ar' ? '16px' : '0'}}>
                 <h4 style={{marginBottom: '16px', fontWeight: '600', fontSize: '16px'}}>{t.allUsers} ({allUsers.length})</h4>
                 {allUsers.length === 0 ? (
                   <p style={{color: '#6b7280', textAlign: 'center', paddingTop: '40px'}}>لا توجد حسابات</p>
@@ -9004,7 +9050,7 @@ function CarGarageManagement() {
               </div>
               
               {/* تفاصيل المستخدم */}
-              <div style={{flex: 1, overflowY: 'auto', paddingRight: language === 'ar' ? '16px' : '0', paddingLeft: language === 'ar' ? '0' : '16px'}}>
+              <div className="admin-user-details" style={{flex: 1, overflowY: 'auto', paddingRight: language === 'ar' ? '16px' : '0', paddingLeft: language === 'ar' ? '0' : '16px'}}>
                 {selectedUser ? (
                   <div>
                     <h4 style={{marginBottom: '16px', fontWeight: '600', fontSize: '16px'}}>{t.accountDetails}</h4>
