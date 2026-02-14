@@ -1,0 +1,70 @@
+<?php
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Methods: GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
+
+include_once '../config/database.php';
+
+$database = new Database();
+$db = $database->getConnection();
+
+try {
+    // إحصائيات العملاء
+    $customerCountQuery = "SELECT COUNT(*) as count FROM customers";
+    $customerStmt = $db->prepare($customerCountQuery);
+    $customerStmt->execute();
+    $customerCount = $customerStmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+    // إحصائيات المركبات
+    $vehicleCountQuery = "SELECT COUNT(*) as count FROM vehicles";
+    $vehicleStmt = $db->prepare($vehicleCountQuery);
+    $vehicleStmt->execute();
+    $vehicleCount = $vehicleStmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+    // إحصائيات الخدمات النشطة
+    $activeServicesQuery = "SELECT COUNT(*) as count FROM services WHERE status IN ('pending', 'in-progress')";
+    $servicesStmt = $db->prepare($activeServicesQuery);
+    $servicesStmt->execute();
+    $activeServices = $servicesStmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+    // إجمالي الإيرادات
+    $revenueQuery = "SELECT SUM(amount_paid) as total FROM services";
+    $revenueStmt = $db->prepare($revenueQuery);
+    $revenueStmt->execute();
+    $totalRevenue = $revenueStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+    // الخدمات الأخيرة
+    $recentServicesQuery = "SELECT s.*, v.make, v.model, v.license_plate 
+                           FROM services s 
+                           JOIN vehicles v ON s.vehicle_id = v.id 
+                           ORDER BY s.created_at DESC LIMIT 5";
+    $recentStmt = $db->prepare($recentServicesQuery);
+    $recentStmt->execute();
+    $recentServices = $recentStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    echo json_encode([
+        "success" => true,
+        "stats" => [
+            "total_customers" => (int)$customerCount,
+            "total_vehicles" => (int)$vehicleCount,
+            "active_services" => (int)$activeServices,
+            "total_revenue" => (float)$totalRevenue
+        ],
+        "recent_services" => $recentServices
+    ]);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        "success" => false,
+        "message" => "Error fetching dashboard data",
+        "error" => $e->getMessage()
+    ]);
+}
+?>
