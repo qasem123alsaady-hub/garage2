@@ -1,4 +1,9 @@
 <?php
+// تشغيل عرض الأخطاء للتشخيص
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
@@ -9,6 +14,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit();
 }
+
+// تشخيص المسار
+$database_path = __DIR__ . '/../config/database.php';
+echo json_encode([
+    'status' => 'diagnostic',
+    'current_file' => __FILE__,
+    'current_dir' => __DIR__,
+    'database_path' => $database_path,
+    'database_exists' => file_exists($database_path) ? 'yes' : 'no',
+    'database_readable' => is_readable($database_path) ? 'yes' : 'no'
+]);
+exit(); // سنوقف التنفيذ هنا مؤقتاً لنرى نتيجة التشخيص
 
 include_once '../config/database.php';
 
