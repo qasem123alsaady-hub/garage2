@@ -1,7 +1,7 @@
 <?php
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { http_response_code(200); exit(); }
@@ -46,6 +46,49 @@ if ($method == 'POST') {
             
             $db->commit();
             echo json_encode(["success" => true, "message" => "Payment added", "id" => $paymentId, "receipt_number" => $receipt_number]);
+        } catch (Exception $e) {
+            $db->rollBack();
+            echo json_encode(["success" => false, "message" => $e->getMessage()]);
+        }
+    } else {
+        echo json_encode(["success" => false, "message" => "Incomplete data"]);
+    }
+}
+
+if ($method == 'PUT') {
+    $data = json_decode(file_get_contents("php://input"));
+    
+    if (!empty($data->id) && !empty($data->amount)) {
+        try {
+            $db->beginTransaction();
+            
+            // Get original payment to find invoice_id
+            $stmt = $db->prepare("SELECT invoice_id FROM purchase_payments WHERE id = :id");
+            $stmt->bindParam(":id", $data->id);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$row) throw new Exception("Payment not found");
+            $invoice_id = $row['invoice_id'];
+
+            $query = "UPDATE purchase_payments SET 
+                      amount = :amount, 
+                      payment_date = :payment_date, 
+                      notes = :notes 
+                      WHERE id = :id";
+            $stmt = $db->prepare($query);
+            
+            $stmt->bindParam(":amount", $data->amount);
+            $stmt->bindParam(":payment_date", $data->payment_date);
+            $stmt->bindParam(":notes", $data->notes);
+            $stmt->bindParam(":id", $data->id);
+            
+            $stmt->execute();
+            
+            updateInvoiceStatus($db, $invoice_id);
+            
+            $db->commit();
+            echo json_encode(["success" => true, "message" => "Payment updated"]);
         } catch (Exception $e) {
             $db->rollBack();
             echo json_encode(["success" => false, "message" => $e->getMessage()]);

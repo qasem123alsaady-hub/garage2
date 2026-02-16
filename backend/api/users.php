@@ -33,8 +33,10 @@ class Users {
 
     // إنشاء مستخدم جديد
     public function create($data) {
+        $id = isset($data['id']) ? $data['id'] : 'u' . time() . rand(1000, 9999);
         $query = "INSERT INTO " . $this->table_name . " 
-                  SET username = :username, 
+                  SET id = :id,
+                      username = :username, 
                       password = :password, 
                       name = :name, 
                       role = :role, 
@@ -48,6 +50,7 @@ class Users {
         }
         
         // ربط القيم
+        $stmt->bindParam(':id', $id);
         $stmt->bindParam(':username', $data['username']);
         $stmt->bindParam(':password', $data['password']);
         $stmt->bindParam(':name', $data['name']);
@@ -55,7 +58,7 @@ class Users {
         $stmt->bindParam(':customer_id', $data['customer_id']);
         
         if ($stmt->execute()) {
-            return $this->conn->lastInsertId();
+            return $id;
         }
         $this->error = implode(" - ", $stmt->errorInfo());
         return false;
@@ -178,165 +181,164 @@ class Users {
     }
 }
 
-// معالجة الطلبات
 $database = new Database();
 $db = $database->getConnection();
 $users = new Users($db);
 
 $method = $_SERVER['REQUEST_METHOD'];
 
-// جلب جميع المستخدمين
-if ($method == 'GET') {
-    $role = isset($_GET['role']) ? $_GET['role'] : null;
-    $allUsers = $users->getAllUsers($role);
-    
-    if (!empty($allUsers)) {
+try {
+    // جلب جميع المستخدمين
+    if ($method == 'GET') {
+        $role = isset($_GET['role']) ? $_GET['role'] : null;
+        $allUsers = $users->getAllUsers($role);
+        
         echo json_encode($allUsers);
-    } else {
-        echo json_encode([]);
     }
-}
 
-// إنشاء مستخدم جديد
-else if ($method == 'POST') {
-    $data = json_decode(file_get_contents("php://input"), true);
-    
-    // الحالة الخاصة: إنشاء مستخدم للعميل باستخدام رقم الهاتف
-    if (isset($data['create_customer_user']) && $data['create_customer_user'] === true) {
-        if (!empty($data['phone']) && !empty($data['customer_id']) && !empty($data['customer_name'])) {
-            // التحقق من عدم وجود مستخدم بنفس اسم المستخدم (رقم الهاتف)
-            if ($users->usernameExists($data['phone'])) {
+    // إنشاء مستخدم جديد
+    else if ($method == 'POST') {
+        $data = json_decode(file_get_contents("php://input"), true);
+        
+        // الحالة الخاصة: إنشاء مستخدم للعميل باستخدام رقم الهاتف
+        if (isset($data['create_customer_user']) && $data['create_customer_user'] === true) {
+            if (!empty($data['phone']) && !empty($data['customer_id']) && !empty($data['customer_name'])) {
+                // التحقق من عدم وجود مستخدم بنفس اسم المستخدم (رقم الهاتف)
+                if ($users->usernameExists($data['phone'])) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'رقم الهاتف مسجل مسبقاً'
+                    ]);
+                } else {
+                    $userData = [
+                        'username' => $data['phone'], // استخدام رقم الهاتف كاسم مستخدم
+                        'password' => password_hash('123456', PASSWORD_DEFAULT), // كلمة السر الافتراضية
+                        'name' => $data['customer_name'], // اسم العميل
+                        'role' => 'customer', // دور العميل
+                        'customer_id' => $data['customer_id'] // ربط بالعميل
+                    ];
+                    
+                    $userId = $users->create($userData);
+                    
+                    if ($userId) {
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'تم إنشاء مستخدم العميل بنجاح',
+                            'user_id' => $userId,
+                            'username' => $userData['username'],
+                            'default_password' => '123456',
+                            'customer_id' => $userData['customer_id']
+                        ]);
+                    } else {
+                        echo json_encode([
+                            'success' => false,
+                            'message' => 'تعذر إنشاء مستخدم العميل: ' . $users->error
+                        ]);
+                    }
+                }
+            } else {
                 echo json_encode([
                     'success' => false,
-                    'message' => 'رقم الهاتف مسجل مسبقاً'
+                    'message' => 'بيانات ناقصة: يرجى إدخال رقم الهاتف ورقم العميل واسم العميل'
                 ]);
-            } else {
-                $userData = [
-                    'username' => $data['phone'], // استخدام رقم الهاتف كاسم مستخدم
-                    'password' => password_hash('123456', PASSWORD_DEFAULT), // كلمة السر الافتراضية
-                    'name' => $data['customer_name'], // اسم العميل
-                    'role' => 'customer', // دور العميل
-                    'customer_id' => $data['customer_id'] // ربط بالعميل
-                ];
-                
-                $userId = $users->create($userData);
-                
+            }
+        }
+        // الحالة العادية: إنشاء مستخدم عادي
+        else if (!empty($data['username']) && !empty($data['password']) && !empty($data['name']) && !empty($data['role'])) {
+            // التحقق من عدم وجود مستخدم بنفس اسم المستخدم
+            if ($users->usernameExists($data['username'])) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'اسم المستخدم موجود مسبقاً'
+                ]);
+                    } else {
+                        $userData = [
+                            'username' => $data['username'],
+                            'password' => password_hash($data['password'], PASSWORD_DEFAULT),
+                            'name' => $data['name'],
+                            'role' => $data['role'],
+                            'email' => !empty($data['email']) ? $data['email'] : null,
+                            'customer_id' => (!empty($data['customer_id'])) ? $data['customer_id'] : null
+                        ];
+                        
+                        $userId = $users->create($userData);                
                 if ($userId) {
                     echo json_encode([
                         'success' => true,
-                        'message' => 'تم إنشاء مستخدم العميل بنجاح',
-                        'user_id' => $userId,
-                        'username' => $userData['username'],
-                        'default_password' => '123456',
-                        'customer_id' => $userData['customer_id']
+                        'message' => 'تم إنشاء المستخدم بنجاح',
+                        'user_id' => $userId
                     ]);
                 } else {
                     echo json_encode([
                         'success' => false,
-                        'message' => 'تعذر إنشاء مستخدم العميل'
+                        'message' => 'تعذر إنشاء المستخدم: ' . $users->error
                     ]);
                 }
             }
         } else {
             echo json_encode([
                 'success' => false,
-                'message' => 'بيانات ناقصة: يرجى إدخال رقم الهاتف ورقم العميل واسم العميل'
+                'message' => 'بيانات ناقصة'
             ]);
         }
     }
-    // الحالة العادية: إنشاء مستخدم عادي
-    else if (!empty($data['username']) && !empty($data['password']) && !empty($data['name']) && !empty($data['role'])) {
-        // التحقق من عدم وجود مستخدم بنفس اسم المستخدم
-        if ($users->usernameExists($data['username'])) {
-            echo json_encode([
-                'success' => false,
-                'message' => 'اسم المستخدم موجود مسبقاً'
-            ]);
-        } else {
-            $userData = [
-                'username' => $data['username'],
-                'password' => password_hash($data['password'], PASSWORD_DEFAULT),
-                'name' => $data['name'],
-                'role' => $data['role'],
-                'email' => !empty($data['email']) ? $data['email'] : null,
-                'customer_id' => isset($data['customer_id']) ? $data['customer_id'] : null
-            ];
+
+    // تحديث مستخدم (تغيير كلمة المرور أو البيانات)
+    else if ($method == 'PUT') {
+        $data = json_decode(file_get_contents("php://input"), true);
+        
+        if (isset($data['id'])) {
+            $updateData = [];
             
-            $userId = $users->create($userData);
-            
-            if ($userId) {
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'تم إنشاء المستخدم بنجاح',
-                    'user_id' => $userId
-                ]);
-            } else {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'تعذر إنشاء المستخدم: ' . $users->error
-                ]);
+            if (isset($data['password']) && !empty($data['password'])) {
+                $updateData['password'] = $data['password'];
             }
-        }
-    } else {
-        echo json_encode([
-            'success' => false,
-            'message' => 'بيانات ناقصة'
-        ]);
-    }
-}
-
-// تحديث مستخدم (تغيير كلمة المرور أو البيانات)
-else if ($method == 'PUT') {
-    $data = json_decode(file_get_contents("php://input"), true);
-    
-    if (isset($data['id'])) {
-        $updateData = [];
-        
-        if (isset($data['password'])) {
-            $updateData['password'] = $data['password'];
-        }
-        if (isset($data['name'])) {
-            $updateData['name'] = $data['name'];
-        }
-        if (isset($data['username'])) {
-            $updateData['username'] = $data['username'];
-        }
-        if (isset($data['role'])) {
-            $updateData['role'] = $data['role'];
-        }
-        if (isset($data['email'])) {
-            $updateData['email'] = !empty($data['email']) ? $data['email'] : null;
-        }
-        if (isset($data['customer_id'])) {
-            $updateData['customer_id'] = $data['customer_id'];
-        }
-        
-        if ($users->updateUser($data['id'], $updateData)) {
-            echo json_encode(['success' => true, 'message' => 'تم تحديث المستخدم بنجاح']);
+            if (isset($data['name'])) {
+                $updateData['name'] = $data['name'];
+            }
+            if (isset($data['username'])) {
+                $updateData['username'] = $data['username'];
+            }
+            if (isset($data['role'])) {
+                $updateData['role'] = $data['role'];
+            }
+            if (isset($data['customer_id'])) {
+                $updateData['customer_id'] = !empty($data['customer_id']) ? $data['customer_id'] : null;
+            }
+            
+            if ($users->updateUser($data['id'], $updateData)) {
+                echo json_encode(['success' => true, 'message' => 'تم تحديث المستخدم بنجاح']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'فشل تحديث المستخدم أو لم يتم تغيير أي بيانات']);
+            }
         } else {
-            echo json_encode(['success' => false, 'message' => 'فشل تحديث المستخدم']);
+            echo json_encode(['success' => false, 'message' => 'معرف المستخدم مفقود']);
         }
-    } else {
-        echo json_encode(['success' => false, 'message' => 'معرف المستخدم مفقود']);
     }
-}
 
-// حذف مستخدم
-else if ($method == 'DELETE') {
-    $data = json_decode(file_get_contents("php://input"), true);
-    
-    if (isset($data['id'])) {
-        if ($users->deleteUser($data['id'])) {
-            echo json_encode(['success' => true, 'message' => 'تم حذف المستخدم بنجاح']);
+    // حذف مستخدم
+    else if ($method == 'DELETE') {
+        $data = json_decode(file_get_contents("php://input"), true);
+        
+        if (isset($data['id'])) {
+            if ($users->deleteUser($data['id'])) {
+                echo json_encode(['success' => true, 'message' => 'تم حذف المستخدم بنجاح']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'فشل حذف المستخدم']);
+            }
         } else {
-            echo json_encode(['success' => false, 'message' => 'فشل حذف المستخدم']);
+            echo json_encode(['success' => false, 'message' => 'معرف المستخدم مفقود']);
         }
-    } else {
-        echo json_encode(['success' => false, 'message' => 'معرف المستخدم مفقود']);
     }
-}
 
-else {
-    echo json_encode(['success' => false, 'message' => 'الطريقة غير مدعومة']);
+    else {
+        echo json_encode(['success' => false, 'message' => 'الطريقة غير مدعومة']);
+    }
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'خطأ في الخادم: ' . $e->getMessage()
+    ]);
 }
 ?>

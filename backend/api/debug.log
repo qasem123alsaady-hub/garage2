@@ -13252,12 +13252,1666 @@
 [2026-02-14 22:34:05] Input Data: 
 [2026-02-14 22:34:05] GET Payments - service_id: ALL
 [2026-02-14 22:34:05] Found 8 payments
-[2026-02-14 22:49:34] === PAYMENTS REQUEST ===
-[2026-02-14 22:49:34] Method: GET
-[2026-02-14 22:49:34] GET Parameters: Array
+[2026-02-16 05:20:13] === PAYMENTS REQUEST ===
+[2026-02-16 05:20:13] Method: GET
+[2026-02-16 05:20:13] GET Parameters: Array
 (
 )
 
-[2026-02-14 22:49:34] Input Data: 
-[2026-02-14 22:49:34] GET Payments - service_id: ALL
-[2026-02-14 22:49:34] Found 8 payments
+[2026-02-16 05:20:13] Input Data: 
+[2026-02-16 05:20:13] GET Payments - service_id: ALL
+[2026-02-16 05:20:13] Found 7 payments
+[2026-02-16 05:20:33] === PAYMENTS REQUEST ===
+[2026-02-16 05:20:33] Method: GET
+[2026-02-16 05:20:33] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:20:33] Input Data: 
+[2026-02-16 05:20:33] GET Payments - service_id: ALL
+[2026-02-16 05:20:33] Found 7 payments
+[2026-02-16 05:20:53] === PAYMENTS REQUEST ===
+[2026-02-16 05:20:53] Method: GET
+[2026-02-16 05:20:53] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:20:53] Input Data: 
+[2026-02-16 05:20:53] GET Payments - service_id: ALL
+[2026-02-16 05:20:53] Found 7 payments
+[2026-02-16 05:21:09] === PAYMENTS REQUEST ===
+[2026-02-16 05:21:09] Method: GET
+[2026-02-16 05:21:09] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:21:09] Input Data: 
+[2026-02-16 05:21:09] GET Payments - service_id: ALL
+[2026-02-16 05:21:09] Found 7 payments
+[2026-02-16 05:22:07] === PAYMENTS REQUEST ===
+[2026-02-16 05:22:07] Method: GET
+[2026-02-16 05:22:07] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:22:07] Input Data: 
+[2026-02-16 05:22:07] GET Payments - service_id: ALL
+[2026-02-16 05:22:07] Found 7 payments
+[2026-02-16 05:23:00] === PAYMENTS REQUEST ===
+[2026-02-16 05:23:00] Method: GET
+[2026-02-16 05:23:00] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:23:00] Input Data: 
+[2026-02-16 05:23:00] GET Payments - service_id: ALL
+[2026-02-16 05:23:00] Found 7 payments
+[2026-02-16 05:24:15] === PAYMENTS REQUEST ===
+[2026-02-16 05:24:15] Method: GET
+[2026-02-16 05:24:15] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:24:15] Input Data: 
+[2026-02-16 05:24:15] GET Payments - service_id: ALL
+[2026-02-16 05:24:15] Found 7 payments
+[2026-02-16 05:24:39] === PAYMENTS REQUEST ===
+[2026-02-16 05:24:39] Method: GET
+[2026-02-16 05:24:39] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:24:39] Input Data: 
+[2026-02-16 05:24:39] GET Payments - service_id: ALL
+[2026-02-16 05:24:39] Found 7 payments
+[2026-02-16 05:25:01] === PAYMENTS REQUEST ===
+[2026-02-16 05:25:01] Method: GET
+[2026-02-16 05:25:01] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:25:01] Input Data: 
+[2026-02-16 05:25:01] GET Payments - service_id: ALL
+[2026-02-16 05:25:01] Found 7 payments
+[2026-02-16 05:25:07] === PAYMENTS REQUEST ===
+[2026-02-16 05:25:07] Method: GET
+[2026-02-16 05:25:07] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:25:07] Input Data: 
+[2026-02-16 05:25:07] GET Payments - service_id: ALL
+[2026-02-16 05:25:07] Found 7 payments
+[2026-02-16 05:25:14] === PAYMENTS REQUEST ===
+[2026-02-16 05:25:14] Method: POST
+[2026-02-16 05:25:14] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:25:14] Input Data: Array
+(
+    [service_id] => s17712159019589
+    [amount] => 10000
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 05:25:14] CREATE Payment Input: Array
+(
+    [service_id] => s17712159019589
+    [amount] => 10000
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 05:25:14] Current payments total: 0
+[2026-02-16 05:25:14] Service cost: 10000
+[2026-02-16 05:25:14] New payment amount: 10000
+[2026-02-16 05:25:14] Payment created successfully with ID: pay_69929c2a2e0d3
+[2026-02-16 05:25:14] New Amount Paid: 10000, Remaining: 0, Status: paid
+[2026-02-16 05:25:14] === PAYMENTS REQUEST ===
+[2026-02-16 05:25:14] Method: GET
+[2026-02-16 05:25:14] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:25:14] Input Data: 
+[2026-02-16 05:25:14] GET Payments - service_id: ALL
+[2026-02-16 05:25:14] Found 8 payments
+[2026-02-16 05:25:30] === PAYMENTS REQUEST ===
+[2026-02-16 05:25:30] Method: PUT
+[2026-02-16 05:25:30] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:25:30] Input Data: Array
+(
+    [payment_id] => pay_69929c2a2e0d3
+    [amount] => 50
+    [payment_method] => cash
+    [payment_date] => 2026-02-16
+    [transaction_id] => 
+    [notes] => 
+)
+
+[2026-02-16 05:25:30] UPDATE Payment - payment_id: pay_69929c2a2e0d3
+[2026-02-16 05:25:30] Update Data: Array
+(
+    [payment_id] => pay_69929c2a2e0d3
+    [amount] => 50
+    [payment_method] => cash
+    [payment_date] => 2026-02-16
+    [transaction_id] => 
+    [notes] => 
+)
+
+[2026-02-16 05:25:30] Payment amount changed from 10000 to 50
+[2026-02-16 05:25:30] Recalculation after payment update:
+[2026-02-16 05:25:30] Service Cost: 10000
+[2026-02-16 05:25:30] New Paid Total: 50
+[2026-02-16 05:25:30] Remaining Amount: 9950
+[2026-02-16 05:25:30] Payment Status: partial
+[2026-02-16 05:25:30] Payment updated successfully: pay_69929c2a2e0d3
+[2026-02-16 05:25:30] === PAYMENTS REQUEST ===
+[2026-02-16 05:25:30] Method: GET
+[2026-02-16 05:25:30] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:25:30] Input Data: 
+[2026-02-16 05:25:30] GET Payments - service_id: ALL
+[2026-02-16 05:25:30] Found 8 payments
+[2026-02-16 05:25:53] === PAYMENTS REQUEST ===
+[2026-02-16 05:25:53] Method: POST
+[2026-02-16 05:25:53] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:25:53] Input Data: Array
+(
+    [service_id] => s17712159019589
+    [amount] => 140
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 05:25:53] CREATE Payment Input: Array
+(
+    [service_id] => s17712159019589
+    [amount] => 140
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 05:25:53] Current payments total: 50
+[2026-02-16 05:25:53] Service cost: 10000
+[2026-02-16 05:25:53] New payment amount: 140
+[2026-02-16 05:25:53] Payment created successfully with ID: pay_69929c51308e8
+[2026-02-16 05:25:53] New Amount Paid: 190, Remaining: 9810, Status: partial
+[2026-02-16 05:25:53] === PAYMENTS REQUEST ===
+[2026-02-16 05:25:53] Method: GET
+[2026-02-16 05:25:53] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:25:53] Input Data: 
+[2026-02-16 05:25:53] GET Payments - service_id: ALL
+[2026-02-16 05:25:53] Found 9 payments
+[2026-02-16 05:26:01] === PAYMENTS REQUEST ===
+[2026-02-16 05:26:01] Method: POST
+[2026-02-16 05:26:01] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:26:01] Input Data: Array
+(
+    [service_id] => s17712159019589
+    [amount] => 9810
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 05:26:01] CREATE Payment Input: Array
+(
+    [service_id] => s17712159019589
+    [amount] => 9810
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 05:26:01] Current payments total: 190
+[2026-02-16 05:26:01] Service cost: 10000
+[2026-02-16 05:26:01] New payment amount: 9810
+[2026-02-16 05:26:01] Payment created successfully with ID: pay_69929c59ebc6c
+[2026-02-16 05:26:01] New Amount Paid: 10000, Remaining: 0, Status: paid
+[2026-02-16 05:26:02] === PAYMENTS REQUEST ===
+[2026-02-16 05:26:02] Method: GET
+[2026-02-16 05:26:02] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:26:02] Input Data: 
+[2026-02-16 05:26:02] GET Payments - service_id: ALL
+[2026-02-16 05:26:02] Found 10 payments
+[2026-02-16 05:26:10] === PAYMENTS REQUEST ===
+[2026-02-16 05:26:10] Method: POST
+[2026-02-16 05:26:10] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:26:10] Input Data: Array
+(
+    [service_id] => s17712131804256
+    [amount] => 4
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => دفع شامل لجميع خدمات الب لابي - دفعة شاملة لخدمات المركبة
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 05:26:10] CREATE Payment Input: Array
+(
+    [service_id] => s17712131804256
+    [amount] => 4
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => دفع شامل لجميع خدمات الب لابي - دفعة شاملة لخدمات المركبة
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 05:26:10] Current payments total: 0
+[2026-02-16 05:26:10] Service cost: 4
+[2026-02-16 05:26:10] New payment amount: 4
+[2026-02-16 05:26:10] Payment created successfully with ID: pay_69929c624abe0
+[2026-02-16 05:26:10] New Amount Paid: 4, Remaining: 0, Status: paid
+[2026-02-16 05:26:10] === PAYMENTS REQUEST ===
+[2026-02-16 05:26:10] Method: POST
+[2026-02-16 05:26:10] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:26:10] Input Data: Array
+(
+    [service_id] => s17712158792211
+    [amount] => 300
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => دفع شامل لجميع خدمات الب لابي - دفعة شاملة لخدمات المركبة
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 05:26:10] CREATE Payment Input: Array
+(
+    [service_id] => s17712158792211
+    [amount] => 300
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => دفع شامل لجميع خدمات الب لابي - دفعة شاملة لخدمات المركبة
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 05:26:10] Current payments total: 0
+[2026-02-16 05:26:10] Service cost: 300
+[2026-02-16 05:26:10] New payment amount: 300
+[2026-02-16 05:26:10] Payment created successfully with ID: pay_69929c6252ae5
+[2026-02-16 05:26:10] New Amount Paid: 300, Remaining: 0, Status: paid
+[2026-02-16 05:26:10] === PAYMENTS REQUEST ===
+[2026-02-16 05:26:10] Method: GET
+[2026-02-16 05:26:10] GET Parameters: Array
+(
+)
+
+[2026-02-16 05:26:10] Input Data: 
+[2026-02-16 05:26:10] GET Payments - service_id: ALL
+[2026-02-16 05:26:10] Found 12 payments
+[2026-02-16 06:05:26] === PAYMENTS REQUEST ===
+[2026-02-16 06:05:26] Method: GET
+[2026-02-16 06:05:26] GET Parameters: Array
+(
+)
+
+[2026-02-16 06:05:26] Input Data: 
+[2026-02-16 06:05:26] GET Payments - service_id: ALL
+[2026-02-16 06:05:26] Found 12 payments
+[2026-02-16 12:46:28] === PAYMENTS REQUEST ===
+[2026-02-16 12:46:28] Method: GET
+[2026-02-16 12:46:28] GET Parameters: Array
+(
+)
+
+[2026-02-16 12:46:28] Input Data: 
+[2026-02-16 12:46:28] GET Payments - service_id: ALL
+[2026-02-16 12:46:28] Found 11 payments
+[2026-02-16 12:54:05] === PAYMENTS REQUEST ===
+[2026-02-16 12:54:05] Method: GET
+[2026-02-16 12:54:05] GET Parameters: Array
+(
+)
+
+[2026-02-16 12:54:05] Input Data: 
+[2026-02-16 12:54:05] GET Payments - service_id: ALL
+[2026-02-16 12:54:05] Found 11 payments
+[2026-02-16 13:03:02] === PAYMENTS REQUEST ===
+[2026-02-16 13:03:02] Method: GET
+[2026-02-16 13:03:02] GET Parameters: Array
+(
+)
+
+[2026-02-16 13:03:02] Input Data: 
+[2026-02-16 13:03:02] GET Payments - service_id: ALL
+[2026-02-16 13:03:02] Found 11 payments
+[2026-02-16 14:32:57] === PAYMENTS REQUEST ===
+[2026-02-16 14:32:57] Method: POST
+[2026-02-16 14:32:57] GET Parameters: Array
+(
+)
+
+[2026-02-16 14:32:57] Input Data: Array
+(
+    [service_id] => 104
+    [amount] => 1227.26
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 14:32:57] CREATE Payment Input: Array
+(
+    [service_id] => 104
+    [amount] => 1227.26
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 14:32:57] Current payments total: 1472.73
+[2026-02-16 14:32:57] Service cost: 2699.99
+[2026-02-16 14:32:57] New payment amount: 1227.26
+[2026-02-16 14:32:57] Payment created successfully with ID: pay_69931c89bc91a
+[2026-02-16 14:32:57] New Amount Paid: 2699.99, Remaining: 0, Status: paid
+[2026-02-16 14:39:14] === PAYMENTS REQUEST ===
+[2026-02-16 14:39:14] Method: POST
+[2026-02-16 14:39:14] GET Parameters: Array
+(
+)
+
+[2026-02-16 14:39:14] Input Data: Array
+(
+    [service_id] => 105
+    [amount] => 22.73
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 14:39:14] CREATE Payment Input: Array
+(
+    [service_id] => 105
+    [amount] => 22.73
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 14:39:14] Current payments total: 27.27
+[2026-02-16 14:39:14] Service cost: 50
+[2026-02-16 14:39:14] New payment amount: 22.73
+[2026-02-16 14:39:14] Payment created successfully with ID: pay_69931e0290874
+[2026-02-16 14:39:14] New Amount Paid: 50, Remaining: 0, Status: paid
+[2026-02-16 16:10:05] === PAYMENTS REQUEST ===
+[2026-02-16 16:10:05] Method: GET
+[2026-02-16 16:10:05] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 16:10:05] Input Data: 
+[2026-02-16 16:10:05] GET Payments - service_id: s177125350613630
+[2026-02-16 16:10:05] Found 0 payments
+[2026-02-16 16:10:05] === PAYMENTS REQUEST ===
+[2026-02-16 16:10:05] Method: GET
+[2026-02-16 16:10:05] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 16:10:05] Input Data: 
+[2026-02-16 16:10:05] GET Payments - service_id: s177125350613630
+[2026-02-16 16:10:05] Found 0 payments
+[2026-02-16 16:10:07] === PAYMENTS REQUEST ===
+[2026-02-16 16:10:07] Method: POST
+[2026-02-16 16:10:07] GET Parameters: Array
+(
+)
+
+[2026-02-16 16:10:07] Input Data: Array
+(
+    [service_id] => s177125350613630
+    [amount] => 11
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 16:10:07] CREATE Payment Input: Array
+(
+    [service_id] => s177125350613630
+    [amount] => 11
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 16:10:07] Current payments total: 0
+[2026-02-16 16:10:07] Service cost: 11
+[2026-02-16 16:10:07] New payment amount: 11
+[2026-02-16 16:10:07] Payment created successfully with ID: pay_6993334fdcd3e
+[2026-02-16 16:10:07] New Amount Paid: 11, Remaining: 0, Status: paid
+[2026-02-16 16:10:07] === PAYMENTS REQUEST ===
+[2026-02-16 16:10:07] Method: GET
+[2026-02-16 16:10:07] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 16:10:07] Input Data: 
+[2026-02-16 16:10:07] GET Payments - service_id: s177125350613630
+[2026-02-16 16:10:07] Found 1 payments
+[2026-02-16 16:10:12] === PAYMENTS REQUEST ===
+[2026-02-16 16:10:12] Method: GET
+[2026-02-16 16:10:12] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 16:10:12] Input Data: 
+[2026-02-16 16:10:12] GET Payments - service_id: s177125350613630
+[2026-02-16 16:10:12] Found 1 payments
+[2026-02-16 16:10:12] === PAYMENTS REQUEST ===
+[2026-02-16 16:10:12] Method: GET
+[2026-02-16 16:10:12] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 16:10:12] Input Data: 
+[2026-02-16 16:10:12] GET Payments - service_id: s177125350613630
+[2026-02-16 16:10:12] Found 1 payments
+[2026-02-16 16:10:59] === PAYMENTS REQUEST ===
+[2026-02-16 16:10:59] Method: GET
+[2026-02-16 16:10:59] GET Parameters: Array
+(
+    [service_id] => 103
+)
+
+[2026-02-16 16:10:59] Input Data: 
+[2026-02-16 16:10:59] GET Payments - service_id: 103
+[2026-02-16 16:10:59] Found 0 payments
+[2026-02-16 16:10:59] === PAYMENTS REQUEST ===
+[2026-02-16 16:10:59] Method: GET
+[2026-02-16 16:10:59] GET Parameters: Array
+(
+    [service_id] => 103
+)
+
+[2026-02-16 16:10:59] Input Data: 
+[2026-02-16 16:10:59] GET Payments - service_id: 103
+[2026-02-16 16:10:59] Found 0 payments
+[2026-02-16 16:11:05] === PAYMENTS REQUEST ===
+[2026-02-16 16:11:05] Method: POST
+[2026-02-16 16:11:05] GET Parameters: Array
+(
+)
+
+[2026-02-16 16:11:05] Input Data: Array
+(
+    [service_id] => 103
+    [amount] => 5
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 16:11:05] CREATE Payment Input: Array
+(
+    [service_id] => 103
+    [amount] => 5
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 16:11:05] Current payments total: 0
+[2026-02-16 16:11:05] Service cost: 100
+[2026-02-16 16:11:05] New payment amount: 5
+[2026-02-16 16:11:05] Payment created successfully with ID: pay_69933389ba04c
+[2026-02-16 16:11:05] New Amount Paid: 5, Remaining: 95, Status: partial
+[2026-02-16 16:11:05] === PAYMENTS REQUEST ===
+[2026-02-16 16:11:05] Method: GET
+[2026-02-16 16:11:05] GET Parameters: Array
+(
+    [service_id] => 103
+)
+
+[2026-02-16 16:11:05] Input Data: 
+[2026-02-16 16:11:05] GET Payments - service_id: 103
+[2026-02-16 16:11:05] Found 1 payments
+[2026-02-16 16:11:11] === PAYMENTS REQUEST ===
+[2026-02-16 16:11:11] Method: GET
+[2026-02-16 16:11:11] GET Parameters: Array
+(
+    [service_id] => 103
+)
+
+[2026-02-16 16:11:11] Input Data: 
+[2026-02-16 16:11:11] GET Payments - service_id: 103
+[2026-02-16 16:11:11] Found 1 payments
+[2026-02-16 16:11:11] === PAYMENTS REQUEST ===
+[2026-02-16 16:11:11] Method: GET
+[2026-02-16 16:11:11] GET Parameters: Array
+(
+    [service_id] => 103
+)
+
+[2026-02-16 16:11:11] Input Data: 
+[2026-02-16 16:11:11] GET Payments - service_id: 103
+[2026-02-16 16:11:11] Found 1 payments
+[2026-02-16 16:11:15] === PAYMENTS REQUEST ===
+[2026-02-16 16:11:15] Method: POST
+[2026-02-16 16:11:15] GET Parameters: Array
+(
+)
+
+[2026-02-16 16:11:15] Input Data: Array
+(
+    [service_id] => 103
+    [amount] => 9
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 16:11:15] CREATE Payment Input: Array
+(
+    [service_id] => 103
+    [amount] => 9
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 16:11:15] Current payments total: 5
+[2026-02-16 16:11:15] Service cost: 100
+[2026-02-16 16:11:15] New payment amount: 9
+[2026-02-16 16:11:15] Payment created successfully with ID: pay_69933393e181c
+[2026-02-16 16:11:15] New Amount Paid: 14, Remaining: 86, Status: partial
+[2026-02-16 16:11:15] === PAYMENTS REQUEST ===
+[2026-02-16 16:11:15] Method: GET
+[2026-02-16 16:11:15] GET Parameters: Array
+(
+    [service_id] => 103
+)
+
+[2026-02-16 16:11:15] Input Data: 
+[2026-02-16 16:11:15] GET Payments - service_id: 103
+[2026-02-16 16:11:15] Found 2 payments
+[2026-02-16 16:11:19] === PAYMENTS REQUEST ===
+[2026-02-16 16:11:19] Method: GET
+[2026-02-16 16:11:19] GET Parameters: Array
+(
+    [service_id] => 103
+)
+
+[2026-02-16 16:11:19] Input Data: 
+[2026-02-16 16:11:19] GET Payments - service_id: 103
+[2026-02-16 16:11:19] Found 2 payments
+[2026-02-16 16:11:19] === PAYMENTS REQUEST ===
+[2026-02-16 16:11:19] Method: GET
+[2026-02-16 16:11:19] GET Parameters: Array
+(
+    [service_id] => 103
+)
+
+[2026-02-16 16:11:19] Input Data: 
+[2026-02-16 16:11:19] GET Payments - service_id: 103
+[2026-02-16 16:11:19] Found 2 payments
+[2026-02-16 16:12:38] === PAYMENTS REQUEST ===
+[2026-02-16 16:12:38] Method: GET
+[2026-02-16 16:12:38] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 16:12:38] Input Data: 
+[2026-02-16 16:12:38] GET Payments - service_id: s177125350613630
+[2026-02-16 16:12:38] Found 1 payments
+[2026-02-16 16:12:38] === PAYMENTS REQUEST ===
+[2026-02-16 16:12:38] Method: GET
+[2026-02-16 16:12:38] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 16:12:38] Input Data: 
+[2026-02-16 16:12:38] GET Payments - service_id: s177125350613630
+[2026-02-16 16:12:38] Found 1 payments
+[2026-02-16 16:29:01] === PAYMENTS REQUEST ===
+[2026-02-16 16:29:01] Method: GET
+[2026-02-16 16:29:01] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 16:29:01] Input Data: 
+[2026-02-16 16:29:01] GET Payments - service_id: s177125350613630
+[2026-02-16 16:29:01] Found 1 payments
+[2026-02-16 16:29:01] === PAYMENTS REQUEST ===
+[2026-02-16 16:29:01] Method: GET
+[2026-02-16 16:29:01] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 16:29:01] Input Data: 
+[2026-02-16 16:29:01] GET Payments - service_id: s177125350613630
+[2026-02-16 16:29:01] Found 1 payments
+[2026-02-16 15:30:29] [PDF] Request received: 
+[2026-02-16 15:30:56] [PDF] Request received: None
+[2026-02-16 15:30:56] [PDF] PDF rendered successfully. Size: 29664
+[2026-02-16 16:36:16] [PDF] Request: lang=ar&type=customer_statement&customer_id=c17711799418279
+[2026-02-16 16:36:16] [PDF] Success. Size: 24325
+[2026-02-16 16:45:47] [PDF] Request: lang=ar&type=vehicle_statement&vehicle_id=61
+[2026-02-16 16:45:47] [PDF] Success. Size: 23528
+[2026-02-16 16:50:52] === PAYMENTS REQUEST ===
+[2026-02-16 16:50:52] Method: GET
+[2026-02-16 16:50:52] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 16:50:52] Input Data: 
+[2026-02-16 16:50:52] GET Payments - service_id: s177125350613630
+[2026-02-16 16:50:52] Found 1 payments
+[2026-02-16 16:50:52] === PAYMENTS REQUEST ===
+[2026-02-16 16:50:52] Method: GET
+[2026-02-16 16:50:52] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 16:50:52] Input Data: 
+[2026-02-16 16:50:52] GET Payments - service_id: s177125350613630
+[2026-02-16 16:50:52] Found 1 payments
+[2026-02-16 16:50:54] [PDF] Request: lang=ar&type=payment_receipt&payment_id=pay_6993334fdcd3e
+[2026-02-16 16:50:54] [PDF] Success. Size: 22362
+[2026-02-16 17:02:56] [PDF] Request: lang=ar&type=customer_statement&customer_id=c17711799418279
+[2026-02-16 17:02:56] [PDF] Success. Size: 23992
+[2026-02-16 17:03:32] === PAYMENTS REQUEST ===
+[2026-02-16 17:03:32] Method: GET
+[2026-02-16 17:03:32] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 17:03:32] Input Data: 
+[2026-02-16 17:03:32] GET Payments - service_id: s177125350613630
+[2026-02-16 17:03:32] Found 1 payments
+[2026-02-16 17:03:32] === PAYMENTS REQUEST ===
+[2026-02-16 17:03:32] Method: GET
+[2026-02-16 17:03:32] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 17:03:32] Input Data: 
+[2026-02-16 17:03:32] GET Payments - service_id: s177125350613630
+[2026-02-16 17:03:32] Found 1 payments
+[2026-02-16 17:03:46] [PDF] Request: lang=ar&type=vehicle_statement&vehicle_id=61
+[2026-02-16 17:03:46] [PDF] Success. Size: 23735
+[2026-02-16 17:03:54] [PDF] Request: lang=ar&type=customer_statement&customer_id=c17711799418279
+[2026-02-16 17:03:55] [PDF] Success. Size: 24351
+[2026-02-16 17:04:29] [PDF] Request: lang=ar&type=services
+[2026-02-16 17:04:30] [PDF] Success. Size: 30549
+[2026-02-16 17:04:39] [PDF] Request: lang=ar&type=financial
+[2026-02-16 17:04:39] [PDF] Success. Size: 25467
+[2026-02-16 17:04:48] [PDF] Request: lang=ar&type=vehicle_statement&vehicle_id=61
+[2026-02-16 17:04:49] [PDF] Success. Size: 23731
+[2026-02-16 17:15:57] === PAYMENTS REQUEST ===
+[2026-02-16 17:15:57] Method: GET
+[2026-02-16 17:15:57] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 17:15:57] Input Data: 
+[2026-02-16 17:15:57] GET Payments - service_id: s177125350613630
+[2026-02-16 17:15:57] Found 1 payments
+[2026-02-16 17:15:58] === PAYMENTS REQUEST ===
+[2026-02-16 17:15:58] Method: GET
+[2026-02-16 17:15:58] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 17:15:58] Input Data: 
+[2026-02-16 17:15:58] GET Payments - service_id: s177125350613630
+[2026-02-16 17:15:58] Found 1 payments
+[2026-02-16 17:24:03] === PAYMENTS REQUEST ===
+[2026-02-16 17:24:03] Method: GET
+[2026-02-16 17:24:03] GET Parameters: Array
+(
+)
+
+[2026-02-16 17:24:03] Input Data: 
+[2026-02-16 17:24:03] GET Payments - service_id: ALL
+[2026-02-16 17:24:03] Found 16 payments
+[2026-02-16 17:24:03] === PAYMENTS REQUEST ===
+[2026-02-16 17:24:03] Method: GET
+[2026-02-16 17:24:03] GET Parameters: Array
+(
+)
+
+[2026-02-16 17:24:03] Input Data: 
+[2026-02-16 17:24:03] GET Payments - service_id: ALL
+[2026-02-16 17:24:03] Found 16 payments
+[2026-02-16 17:25:23] === PAYMENTS REQUEST ===
+[2026-02-16 17:25:23] Method: GET
+[2026-02-16 17:25:23] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 17:25:23] Input Data: 
+[2026-02-16 17:25:23] GET Payments - service_id: s177125350613630
+[2026-02-16 17:25:23] Found 1 payments
+[2026-02-16 17:25:23] === PAYMENTS REQUEST ===
+[2026-02-16 17:25:23] Method: GET
+[2026-02-16 17:25:23] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 17:25:23] Input Data: 
+[2026-02-16 17:25:23] GET Payments - service_id: s177125350613630
+[2026-02-16 17:25:23] Found 1 payments
+[2026-02-16 17:26:06] === PAYMENTS REQUEST ===
+[2026-02-16 17:26:06] Method: GET
+[2026-02-16 17:26:06] GET Parameters: Array
+(
+)
+
+[2026-02-16 17:26:06] Input Data: 
+[2026-02-16 17:26:06] GET Payments - service_id: ALL
+[2026-02-16 17:26:06] Found 16 payments
+[2026-02-16 17:26:06] === PAYMENTS REQUEST ===
+[2026-02-16 17:26:06] Method: GET
+[2026-02-16 17:26:06] GET Parameters: Array
+(
+)
+
+[2026-02-16 17:26:06] Input Data: 
+[2026-02-16 17:26:06] GET Payments - service_id: ALL
+[2026-02-16 17:26:06] Found 16 payments
+[2026-02-16 17:30:57] === PAYMENTS REQUEST ===
+[2026-02-16 17:30:57] Method: GET
+[2026-02-16 17:30:57] GET Parameters: Array
+(
+)
+
+[2026-02-16 17:30:57] Input Data: 
+[2026-02-16 17:30:57] GET Payments - service_id: ALL
+[2026-02-16 17:30:57] Found 16 payments
+[2026-02-16 17:37:17] === PAYMENTS REQUEST ===
+[2026-02-16 17:37:17] Method: GET
+[2026-02-16 17:37:17] GET Parameters: Array
+(
+)
+
+[2026-02-16 17:37:17] Input Data: 
+[2026-02-16 17:37:17] GET Payments - service_id: ALL
+[2026-02-16 17:37:17] Found 16 payments
+[2026-02-16 17:37:17] === PAYMENTS REQUEST ===
+[2026-02-16 17:37:17] Method: GET
+[2026-02-16 17:37:17] GET Parameters: Array
+(
+)
+
+[2026-02-16 17:37:17] Input Data: 
+[2026-02-16 17:37:17] GET Payments - service_id: ALL
+[2026-02-16 17:37:17] Found 16 payments
+[2026-02-16 17:37:40] === PAYMENTS REQUEST ===
+[2026-02-16 17:37:40] Method: GET
+[2026-02-16 17:37:40] GET Parameters: Array
+(
+)
+
+[2026-02-16 17:37:40] Input Data: 
+[2026-02-16 17:37:40] GET Payments - service_id: ALL
+[2026-02-16 17:37:40] Found 16 payments
+[2026-02-16 17:37:48] === PAYMENTS REQUEST ===
+[2026-02-16 17:37:48] Method: GET
+[2026-02-16 17:37:48] GET Parameters: Array
+(
+)
+
+[2026-02-16 17:37:48] Input Data: 
+[2026-02-16 17:37:48] GET Payments - service_id: ALL
+[2026-02-16 17:37:48] Found 16 payments
+[2026-02-16 17:39:05] === PAYMENTS REQUEST ===
+[2026-02-16 17:39:05] Method: GET
+[2026-02-16 17:39:05] GET Parameters: Array
+(
+)
+
+[2026-02-16 17:39:05] Input Data: 
+[2026-02-16 17:39:05] GET Payments - service_id: ALL
+[2026-02-16 17:39:05] Found 16 payments
+[2026-02-16 17:39:05] === PAYMENTS REQUEST ===
+[2026-02-16 17:39:05] Method: GET
+[2026-02-16 17:39:05] GET Parameters: Array
+(
+)
+
+[2026-02-16 17:39:05] Input Data: 
+[2026-02-16 17:39:05] GET Payments - service_id: ALL
+[2026-02-16 17:39:05] Found 16 payments
+[2026-02-16 17:46:03] === PAYMENTS REQUEST ===
+[2026-02-16 17:46:03] Method: GET
+[2026-02-16 17:46:03] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 17:46:03] Input Data: 
+[2026-02-16 17:46:03] GET Payments - service_id: s177125350613630
+[2026-02-16 17:46:03] Found 1 payments
+[2026-02-16 17:46:04] === PAYMENTS REQUEST ===
+[2026-02-16 17:46:04] Method: GET
+[2026-02-16 17:46:04] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 17:46:04] Input Data: 
+[2026-02-16 17:46:04] GET Payments - service_id: s177125350613630
+[2026-02-16 17:46:04] Found 1 payments
+[2026-02-16 18:09:39] === PAYMENTS REQUEST ===
+[2026-02-16 18:09:39] Method: GET
+[2026-02-16 18:09:39] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 18:09:39] Input Data: 
+[2026-02-16 18:09:39] GET Payments - service_id: s177125350613630
+[2026-02-16 18:09:39] Found 1 payments
+[2026-02-16 18:09:39] === PAYMENTS REQUEST ===
+[2026-02-16 18:09:39] Method: GET
+[2026-02-16 18:09:39] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 18:09:39] Input Data: 
+[2026-02-16 18:09:39] GET Payments - service_id: s177125350613630
+[2026-02-16 18:09:39] Found 1 payments
+[2026-02-16 18:11:27] === PAYMENTS REQUEST ===
+[2026-02-16 18:11:27] Method: GET
+[2026-02-16 18:11:27] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 18:11:27] Input Data: 
+[2026-02-16 18:11:27] GET Payments - service_id: s177125350613630
+[2026-02-16 18:11:27] Found 1 payments
+[2026-02-16 18:11:27] === PAYMENTS REQUEST ===
+[2026-02-16 18:11:27] Method: GET
+[2026-02-16 18:11:27] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 18:11:27] Input Data: 
+[2026-02-16 18:11:27] GET Payments - service_id: s177125350613630
+[2026-02-16 18:11:27] Found 1 payments
+[2026-02-16 18:13:17] === PAYMENTS REQUEST ===
+[2026-02-16 18:13:17] Method: GET
+[2026-02-16 18:13:17] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:13:17] Input Data: 
+[2026-02-16 18:13:17] GET Payments - service_id: ALL
+[2026-02-16 18:13:17] Found 16 payments
+[2026-02-16 18:13:17] === PAYMENTS REQUEST ===
+[2026-02-16 18:13:17] Method: GET
+[2026-02-16 18:13:17] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:13:17] Input Data: 
+[2026-02-16 18:13:17] GET Payments - service_id: ALL
+[2026-02-16 18:13:17] Found 16 payments
+[2026-02-16 18:16:01] === PAYMENTS REQUEST ===
+[2026-02-16 18:16:01] Method: GET
+[2026-02-16 18:16:01] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 18:16:01] Input Data: 
+[2026-02-16 18:16:01] GET Payments - service_id: s177125350613630
+[2026-02-16 18:16:01] Found 1 payments
+[2026-02-16 18:16:01] === PAYMENTS REQUEST ===
+[2026-02-16 18:16:01] Method: GET
+[2026-02-16 18:16:01] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 18:16:01] Input Data: 
+[2026-02-16 18:16:01] GET Payments - service_id: s177125350613630
+[2026-02-16 18:16:01] Found 1 payments
+[2026-02-16 18:16:34] === PAYMENTS REQUEST ===
+[2026-02-16 18:16:34] Method: GET
+[2026-02-16 18:16:34] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:16:34] Input Data: 
+[2026-02-16 18:16:34] GET Payments - service_id: ALL
+[2026-02-16 18:16:34] Found 16 payments
+[2026-02-16 18:16:34] === PAYMENTS REQUEST ===
+[2026-02-16 18:16:34] Method: GET
+[2026-02-16 18:16:34] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:16:34] Input Data: 
+[2026-02-16 18:16:34] GET Payments - service_id: ALL
+[2026-02-16 18:16:34] Found 16 payments
+[2026-02-16 18:16:40] === PAYMENTS REQUEST ===
+[2026-02-16 18:16:40] Method: GET
+[2026-02-16 18:16:40] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 18:16:40] Input Data: 
+[2026-02-16 18:16:40] GET Payments - service_id: s177125350613630
+[2026-02-16 18:16:40] Found 1 payments
+[2026-02-16 18:16:40] === PAYMENTS REQUEST ===
+[2026-02-16 18:16:40] Method: GET
+[2026-02-16 18:16:40] GET Parameters: Array
+(
+    [service_id] => s177125350613630
+)
+
+[2026-02-16 18:16:40] Input Data: 
+[2026-02-16 18:16:40] GET Payments - service_id: s177125350613630
+[2026-02-16 18:16:40] Found 1 payments
+[2026-02-16 18:26:49] === PAYMENTS REQUEST ===
+[2026-02-16 18:26:49] Method: GET
+[2026-02-16 18:26:49] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:26:49] Input Data: 
+[2026-02-16 18:26:49] GET Payments - service_id: ALL
+[2026-02-16 18:26:49] Found 16 payments
+[2026-02-16 18:26:49] === PAYMENTS REQUEST ===
+[2026-02-16 18:26:49] Method: GET
+[2026-02-16 18:26:49] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:26:49] Input Data: 
+[2026-02-16 18:26:49] GET Payments - service_id: ALL
+[2026-02-16 18:26:49] Found 16 payments
+[2026-02-16 18:27:01] === PAYMENTS REQUEST ===
+[2026-02-16 18:27:01] Method: GET
+[2026-02-16 18:27:01] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:27:01] Input Data: 
+[2026-02-16 18:27:01] GET Payments - service_id: ALL
+[2026-02-16 18:27:01] Found 16 payments
+[2026-02-16 18:27:01] === PAYMENTS REQUEST ===
+[2026-02-16 18:27:01] Method: GET
+[2026-02-16 18:27:01] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:27:01] Input Data: 
+[2026-02-16 18:27:01] GET Payments - service_id: ALL
+[2026-02-16 18:27:01] Found 16 payments
+[2026-02-16 18:27:11] === PAYMENTS REQUEST ===
+[2026-02-16 18:27:11] Method: GET
+[2026-02-16 18:27:11] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:27:11] Input Data: 
+[2026-02-16 18:27:11] GET Payments - service_id: ALL
+[2026-02-16 18:27:11] Found 16 payments
+[2026-02-16 18:27:11] === PAYMENTS REQUEST ===
+[2026-02-16 18:27:11] Method: GET
+[2026-02-16 18:27:11] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:27:11] Input Data: 
+[2026-02-16 18:27:11] GET Payments - service_id: ALL
+[2026-02-16 18:27:11] Found 16 payments
+[2026-02-16 18:28:50] === PAYMENTS REQUEST ===
+[2026-02-16 18:28:50] Method: GET
+[2026-02-16 18:28:50] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:28:50] Input Data: 
+[2026-02-16 18:28:50] GET Payments - service_id: ALL
+[2026-02-16 18:28:50] Found 16 payments
+[2026-02-16 18:34:42] === PAYMENTS REQUEST ===
+[2026-02-16 18:34:42] Method: GET
+[2026-02-16 18:34:42] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:34:42] Input Data: 
+[2026-02-16 18:34:42] GET Payments - service_id: ALL
+[2026-02-16 18:34:42] Found 16 payments
+[2026-02-16 18:34:53] === PAYMENTS REQUEST ===
+[2026-02-16 18:34:53] Method: GET
+[2026-02-16 18:34:53] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:34:53] Input Data: 
+[2026-02-16 18:34:53] GET Payments - service_id: ALL
+[2026-02-16 18:34:53] Found 16 payments
+[2026-02-16 18:45:21] === PAYMENTS REQUEST ===
+[2026-02-16 18:45:21] Method: GET
+[2026-02-16 18:45:21] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:45:21] Input Data: 
+[2026-02-16 18:45:21] GET Payments - service_id: ALL
+[2026-02-16 18:45:21] Found 16 payments
+[2026-02-16 18:45:21] === PAYMENTS REQUEST ===
+[2026-02-16 18:45:21] Method: GET
+[2026-02-16 18:45:21] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:45:21] Input Data: 
+[2026-02-16 18:45:21] GET Payments - service_id: ALL
+[2026-02-16 18:45:21] Found 16 payments
+[2026-02-16 18:45:50] === PAYMENTS REQUEST ===
+[2026-02-16 18:45:50] Method: GET
+[2026-02-16 18:45:50] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:45:50] Input Data: 
+[2026-02-16 18:45:50] GET Payments - service_id: ALL
+[2026-02-16 18:45:50] Found 16 payments
+[2026-02-16 18:45:50] === PAYMENTS REQUEST ===
+[2026-02-16 18:45:50] Method: GET
+[2026-02-16 18:45:50] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:45:50] Input Data: 
+[2026-02-16 18:45:50] GET Payments - service_id: ALL
+[2026-02-16 18:45:50] Found 16 payments
+[2026-02-16 18:55:11] === PAYMENTS REQUEST ===
+[2026-02-16 18:55:11] Method: GET
+[2026-02-16 18:55:11] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:55:11] Input Data: 
+[2026-02-16 18:55:11] GET Payments - service_id: ALL
+[2026-02-16 18:55:11] Found 16 payments
+[2026-02-16 18:55:11] === PAYMENTS REQUEST ===
+[2026-02-16 18:55:11] Method: GET
+[2026-02-16 18:55:11] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:55:11] Input Data: 
+[2026-02-16 18:55:11] GET Payments - service_id: ALL
+[2026-02-16 18:55:11] Found 16 payments
+[2026-02-16 18:55:51] === PAYMENTS REQUEST ===
+[2026-02-16 18:55:51] Method: GET
+[2026-02-16 18:55:51] GET Parameters: Array
+(
+    [service_id] => s177126435312691
+)
+
+[2026-02-16 18:55:51] Input Data: 
+[2026-02-16 18:55:51] GET Payments - service_id: s177126435312691
+[2026-02-16 18:55:51] Found 0 payments
+[2026-02-16 18:55:51] === PAYMENTS REQUEST ===
+[2026-02-16 18:55:51] Method: GET
+[2026-02-16 18:55:51] GET Parameters: Array
+(
+    [service_id] => s177126435312691
+)
+
+[2026-02-16 18:55:51] Input Data: 
+[2026-02-16 18:55:51] GET Payments - service_id: s177126435312691
+[2026-02-16 18:55:51] Found 0 payments
+[2026-02-16 18:55:53] === PAYMENTS REQUEST ===
+[2026-02-16 18:55:53] Method: POST
+[2026-02-16 18:55:53] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:55:53] Input Data: Array
+(
+    [service_id] => s177126435312691
+    [amount] => 2
+    [payment_method] => cash
+    [transactionId] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 18:55:53] CREATE Payment Input: Array
+(
+    [service_id] => s177126435312691
+    [amount] => 2
+    [payment_method] => cash
+    [transactionId] => 
+    [notes] => 
+    [payment_date] => 2026-02-16
+)
+
+[2026-02-16 18:55:53] Current payments total: 0
+[2026-02-16 18:55:53] Service cost: 2
+[2026-02-16 18:55:53] New payment amount: 2
+[2026-02-16 18:55:53] Payment created successfully with ID: pay_69935a29897f3
+[2026-02-16 18:55:53] New Amount Paid: 2, Remaining: 0, Status: paid
+[2026-02-16 18:55:53] === PAYMENTS REQUEST ===
+[2026-02-16 18:55:53] Method: GET
+[2026-02-16 18:55:53] GET Parameters: Array
+(
+    [service_id] => s177126435312691
+)
+
+[2026-02-16 18:55:53] Input Data: 
+[2026-02-16 18:55:53] GET Payments - service_id: s177126435312691
+[2026-02-16 18:55:53] Found 1 payments
+[2026-02-16 18:59:21] === PAYMENTS REQUEST ===
+[2026-02-16 18:59:21] Method: POST
+[2026-02-16 18:59:21] GET Parameters: Array
+(
+)
+
+[2026-02-16 18:59:21] Input Data: Array
+(
+    [action] => bulk
+    [vehicle_id] => v17712640439804
+    [amount] => 32
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => Comprehensive payment for vehicle 55
+)
+
+[2026-02-16 18:59:21] CREATE Bulk Payment Input: Array
+(
+    [action] => bulk
+    [vehicle_id] => v17712640439804
+    [amount] => 32
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => Comprehensive payment for vehicle 55
+)
+
+[2026-02-16 19:03:04] === PAYMENTS REQUEST ===
+[2026-02-16 19:03:04] Method: GET
+[2026-02-16 19:03:04] GET Parameters: Array
+(
+    [vehicle_id] => v17712640439804
+)
+
+[2026-02-16 19:03:04] Input Data: 
+[2026-02-16 19:03:04] === PAYMENTS REQUEST ===
+[2026-02-16 19:03:04] Method: GET
+[2026-02-16 19:03:04] GET Parameters: Array
+(
+    [vehicle_id] => v17712640439804
+)
+
+[2026-02-16 19:03:04] Input Data: 
+[2026-02-16 19:03:29] === PAYMENTS REQUEST ===
+[2026-02-16 19:03:29] Method: GET
+[2026-02-16 19:03:29] GET Parameters: Array
+(
+    [vehicle_id] => v17712640439804
+)
+
+[2026-02-16 19:03:29] Input Data: 
+[2026-02-16 19:03:29] === PAYMENTS REQUEST ===
+[2026-02-16 19:03:29] Method: GET
+[2026-02-16 19:03:29] GET Parameters: Array
+(
+    [vehicle_id] => v17712640439804
+)
+
+[2026-02-16 19:03:29] Input Data: 
+[2026-02-16 19:11:46] === PAYMENTS REQUEST ===
+[2026-02-16 19:11:46] Method: GET
+[2026-02-16 19:11:46] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:11:46] Input Data: 
+[2026-02-16 19:11:46] === PAYMENTS REQUEST ===
+[2026-02-16 19:11:46] Method: GET
+[2026-02-16 19:11:46] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:11:46] Input Data: 
+[2026-02-16 19:12:24] === PAYMENTS REQUEST ===
+[2026-02-16 19:12:24] Method: GET
+[2026-02-16 19:12:24] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:12:24] Input Data: 
+[2026-02-16 19:12:24] === PAYMENTS REQUEST ===
+[2026-02-16 19:12:24] Method: GET
+[2026-02-16 19:12:24] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:12:24] Input Data: 
+[2026-02-16 19:12:34] === PAYMENTS REQUEST ===
+[2026-02-16 19:12:34] Method: GET
+[2026-02-16 19:12:34] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:12:34] Input Data: 
+[2026-02-16 19:12:34] === PAYMENTS REQUEST ===
+[2026-02-16 19:12:34] Method: GET
+[2026-02-16 19:12:34] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:12:34] Input Data: 
+[2026-02-16 19:13:02] === PAYMENTS REQUEST ===
+[2026-02-16 19:13:02] Method: GET
+[2026-02-16 19:13:02] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:13:02] Input Data: 
+[2026-02-16 19:13:02] === PAYMENTS REQUEST ===
+[2026-02-16 19:13:02] Method: GET
+[2026-02-16 19:13:02] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:13:02] Input Data: 
+[2026-02-16 19:13:15] === PAYMENTS REQUEST ===
+[2026-02-16 19:13:15] Method: GET
+[2026-02-16 19:13:15] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:13:15] Input Data: 
+[2026-02-16 19:13:15] === PAYMENTS REQUEST ===
+[2026-02-16 19:13:15] Method: GET
+[2026-02-16 19:13:15] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:13:15] Input Data: 
+[2026-02-16 19:13:24] === PAYMENTS REQUEST ===
+[2026-02-16 19:13:24] Method: GET
+[2026-02-16 19:13:24] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:13:24] Input Data: 
+[2026-02-16 19:13:24] === PAYMENTS REQUEST ===
+[2026-02-16 19:13:24] Method: GET
+[2026-02-16 19:13:24] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:13:24] Input Data: 
+[2026-02-16 19:16:16] === PAYMENTS REQUEST ===
+[2026-02-16 19:16:16] Method: GET
+[2026-02-16 19:16:16] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:16:16] Input Data: 
+[2026-02-16 19:16:16] === PAYMENTS REQUEST ===
+[2026-02-16 19:16:16] Method: GET
+[2026-02-16 19:16:16] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:16:16] Input Data: 
+[2026-02-16 19:16:42] === PAYMENTS REQUEST ===
+[2026-02-16 19:16:42] Method: GET
+[2026-02-16 19:16:42] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:16:42] Input Data: 
+[2026-02-16 19:16:42] === PAYMENTS REQUEST ===
+[2026-02-16 19:16:42] Method: GET
+[2026-02-16 19:16:42] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:16:42] Input Data: 
+[2026-02-16 19:16:47] === PAYMENTS REQUEST ===
+[2026-02-16 19:16:47] Method: GET
+[2026-02-16 19:16:47] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:16:47] Input Data: 
+[2026-02-16 19:16:47] === PAYMENTS REQUEST ===
+[2026-02-16 19:16:47] Method: GET
+[2026-02-16 19:16:47] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:16:47] Input Data: 
+[2026-02-16 19:30:01] === PAYMENTS REQUEST ===
+[2026-02-16 19:30:01] Method: GET
+[2026-02-16 19:30:01] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:30:01] Input Data: 
+[2026-02-16 19:30:01] === PAYMENTS REQUEST ===
+[2026-02-16 19:30:01] Method: GET
+[2026-02-16 19:30:01] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:30:01] Input Data: 
+[2026-02-16 19:40:37] === PAYMENTS REQUEST ===
+[2026-02-16 19:40:37] Method: GET
+[2026-02-16 19:40:37] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:40:37] Input Data: 
+[2026-02-16 19:40:37] === PAYMENTS REQUEST ===
+[2026-02-16 19:40:37] Method: GET
+[2026-02-16 19:40:37] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:40:37] Input Data: 
+[2026-02-16 19:40:48] === PAYMENTS REQUEST ===
+[2026-02-16 19:40:48] Method: GET
+[2026-02-16 19:40:48] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:40:48] Input Data: 
+[2026-02-16 19:40:48] === PAYMENTS REQUEST ===
+[2026-02-16 19:40:48] Method: GET
+[2026-02-16 19:40:48] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:40:48] Input Data: 
+[2026-02-16 19:44:07] === PAYMENTS REQUEST ===
+[2026-02-16 19:44:07] Method: GET
+[2026-02-16 19:44:07] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:44:07] Input Data: 
+[2026-02-16 19:44:07] === PAYMENTS REQUEST ===
+[2026-02-16 19:44:07] Method: GET
+[2026-02-16 19:44:07] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:44:07] Input Data: 
+[2026-02-16 19:44:39] === PAYMENTS REQUEST ===
+[2026-02-16 19:44:39] Method: GET
+[2026-02-16 19:44:39] GET Parameters: Array
+(
+    [vehicle_id] => v17712640439804
+)
+
+[2026-02-16 19:44:39] Input Data: 
+[2026-02-16 19:44:39] === PAYMENTS REQUEST ===
+[2026-02-16 19:44:39] Method: GET
+[2026-02-16 19:44:39] GET Parameters: Array
+(
+    [vehicle_id] => v17712640439804
+)
+
+[2026-02-16 19:44:39] Input Data: 
+[2026-02-16 19:44:52] === PAYMENTS REQUEST ===
+[2026-02-16 19:44:52] Method: GET
+[2026-02-16 19:44:52] GET Parameters: Array
+(
+    [vehicle_id] => 61
+)
+
+[2026-02-16 19:44:52] Input Data: 
+[2026-02-16 19:44:53] === PAYMENTS REQUEST ===
+[2026-02-16 19:44:53] Method: GET
+[2026-02-16 19:44:53] GET Parameters: Array
+(
+    [vehicle_id] => 61
+)
+
+[2026-02-16 19:44:53] Input Data: 
+[2026-02-16 19:44:57] === PAYMENTS REQUEST ===
+[2026-02-16 19:44:57] Method: GET
+[2026-02-16 19:44:57] GET Parameters: Array
+(
+    [vehicle_id] => v17712640439804
+)
+
+[2026-02-16 19:44:57] Input Data: 
+[2026-02-16 19:44:57] === PAYMENTS REQUEST ===
+[2026-02-16 19:44:57] Method: GET
+[2026-02-16 19:44:57] GET Parameters: Array
+(
+    [vehicle_id] => v17712640439804
+)
+
+[2026-02-16 19:44:57] Input Data: 
+[2026-02-16 19:45:03] === PAYMENTS REQUEST ===
+[2026-02-16 19:45:03] Method: GET
+[2026-02-16 19:45:03] GET Parameters: Array
+(
+    [vehicle_id] => 61
+)
+
+[2026-02-16 19:45:03] Input Data: 
+[2026-02-16 19:45:03] === PAYMENTS REQUEST ===
+[2026-02-16 19:45:03] Method: GET
+[2026-02-16 19:45:03] GET Parameters: Array
+(
+    [vehicle_id] => 61
+)
+
+[2026-02-16 19:45:03] Input Data: 
+[2026-02-16 19:45:06] === PAYMENTS REQUEST ===
+[2026-02-16 19:45:06] Method: POST
+[2026-02-16 19:45:06] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:45:06] Input Data: Array
+(
+    [action] => bulk
+    [vehicle_id] => 61
+    [amount] => 47.99
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => دفع شامل للمركبة شارع خالد 
+)
+
+[2026-02-16 19:45:06] CREATE Bulk Payment Input: Array
+(
+    [action] => bulk
+    [vehicle_id] => 61
+    [amount] => 47.99
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => دفع شامل للمركبة شارع خالد 
+)
+
+[2026-02-16 19:45:08] === PAYMENTS REQUEST ===
+[2026-02-16 19:45:08] Method: GET
+[2026-02-16 19:45:08] GET Parameters: Array
+(
+    [vehicle_id] => 61
+)
+
+[2026-02-16 19:45:08] Input Data: 
+[2026-02-16 19:45:42] === PAYMENTS REQUEST ===
+[2026-02-16 19:45:42] Method: GET
+[2026-02-16 19:45:42] GET Parameters: Array
+(
+    [vehicle_id] => 60
+)
+
+[2026-02-16 19:45:42] Input Data: 
+[2026-02-16 19:45:42] === PAYMENTS REQUEST ===
+[2026-02-16 19:45:42] Method: GET
+[2026-02-16 19:45:42] GET Parameters: Array
+(
+    [vehicle_id] => 60
+)
+
+[2026-02-16 19:45:42] Input Data: 
+[2026-02-16 19:45:47] === PAYMENTS REQUEST ===
+[2026-02-16 19:45:47] Method: GET
+[2026-02-16 19:45:47] GET Parameters: Array
+(
+    [vehicle_id] => 57
+)
+
+[2026-02-16 19:45:47] Input Data: 
+[2026-02-16 19:45:47] === PAYMENTS REQUEST ===
+[2026-02-16 19:45:47] Method: GET
+[2026-02-16 19:45:47] GET Parameters: Array
+(
+    [vehicle_id] => 57
+)
+
+[2026-02-16 19:45:47] Input Data: 
+[2026-02-16 19:46:02] === PAYMENTS REQUEST ===
+[2026-02-16 19:46:02] Method: POST
+[2026-02-16 19:46:02] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:46:02] Input Data: Array
+(
+    [action] => bulk
+    [vehicle_id] => 57
+    [amount] => 6033.98
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => دفع شامل للمركبة 21
+)
+
+[2026-02-16 19:46:02] CREATE Bulk Payment Input: Array
+(
+    [action] => bulk
+    [vehicle_id] => 57
+    [amount] => 6033.98
+    [payment_method] => cash
+    [transaction_id] => 
+    [notes] => دفع شامل للمركبة 21
+)
+
+[2026-02-16 19:46:04] === PAYMENTS REQUEST ===
+[2026-02-16 19:46:04] Method: GET
+[2026-02-16 19:46:04] GET Parameters: Array
+(
+    [vehicle_id] => 57
+)
+
+[2026-02-16 19:46:04] Input Data: 
+[2026-02-16 19:46:17] === PAYMENTS REQUEST ===
+[2026-02-16 19:46:17] Method: GET
+[2026-02-16 19:46:17] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:46:17] Input Data: 
+[2026-02-16 19:46:17] === PAYMENTS REQUEST ===
+[2026-02-16 19:46:17] Method: GET
+[2026-02-16 19:46:17] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:46:17] Input Data: 
+[2026-02-16 19:46:24] === PAYMENTS REQUEST ===
+[2026-02-16 19:46:24] Method: GET
+[2026-02-16 19:46:24] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:46:24] Input Data: 
+[2026-02-16 19:46:24] === PAYMENTS REQUEST ===
+[2026-02-16 19:46:24] Method: GET
+[2026-02-16 19:46:24] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:46:24] Input Data: 
+[2026-02-16 19:47:57] === PAYMENTS REQUEST ===
+[2026-02-16 19:47:57] Method: GET
+[2026-02-16 19:47:57] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:47:57] Input Data: 
+[2026-02-16 19:47:57] === PAYMENTS REQUEST ===
+[2026-02-16 19:47:57] Method: GET
+[2026-02-16 19:47:57] GET Parameters: Array
+(
+)
+
+[2026-02-16 19:47:57] Input Data: 

@@ -60,7 +60,11 @@ switch($method) {
         getPayments($db, $_GET);
         break;
     case 'POST':
-        createPayment($db, $input);
+        if (isset($input['action']) && $input['action'] === 'bulk') {
+            createBulkPayment($db, $input);
+        } else {
+            createPayment($db, $input);
+        }
         break;
     case 'PUT':
         updatePayment($db, $input);
@@ -74,27 +78,162 @@ switch($method) {
         break;
 }
 
+function createBulkPayment($db, $input) {
+    try {
+        log_debug("CREATE Bulk Payment Input: " . print_r($input, true));
+
+        if (!isset($input['vehicle_id']) || !isset($input['amount'])) {
+            http_response_code(400);
+            echo json_encode(["message" => "Vehicle ID and amount are required", "success" => false]);
+            return;
+        }
+
+        $vehicle_id = $input['vehicle_id'];
+        $total_payment_amount = floatval($input['amount']);
+        $payment_method = $input['payment_method'] ?? 'cash';
+        $transaction_id = $input['transaction_id'] ?? '';
+        $notes = $input['notes'] ?? '';
+        $payment_date = date('Y-m-d H:i:s');
+
+        if ($total_payment_amount <= 0) {
+            throw new Exception("Payment amount must be greater than 0");
+        }
+
+        // 1. جلب جميع الخدمات المعلقة لهذه المركبة
+        $query = "SELECT * FROM services 
+                  WHERE vehicle_id = :vehicle_id 
+                  AND payment_status != 'paid' 
+                  ORDER BY date ASC, created_at ASC";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":vehicle_id", $vehicle_id);
+        $stmt->execute();
+        $pending_services = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($pending_services)) {
+            echo json_encode(["message" => "No pending services found for this vehicle", "success" => false]);
+            return;
+        }
+
+        $db->beginTransaction();
+
+        $remaining_to_distribute = $total_payment_amount;
+        $processed_services = [];
+
+        foreach ($pending_services as $service) {
+            if ($remaining_to_distribute <= 0) break;
+
+            $service_id = $service['id'];
+            $service_cost = floatval($service['cost']);
+            $already_paid = floatval($service['amount_paid']);
+            $service_remaining = $service_cost - $already_paid;
+
+            if ($service_remaining <= 0) continue;
+
+            // المبلغ الذي سيتم دفعه لهذه الخدمة
+            $payment_for_this_service = min($remaining_to_distribute, $service_remaining);
+            
+            // إضافة سجل الدفعة
+            $paymentId = uniqid('pay_');
+            $pay_query = "INSERT INTO payments SET 
+                          id = :id, service_id = :service_id, amount = :amount, 
+                          payment_method = :payment_method, transaction_id = :transaction_id, 
+                          notes = :notes, payment_date = :payment_date";
+            $pay_stmt = $db->prepare($pay_query);
+            $pay_stmt->bindParam(":id", $paymentId);
+            $pay_stmt->bindParam(":service_id", $service_id);
+            $pay_stmt->bindParam(":amount", $payment_for_this_service);
+            $pay_stmt->bindParam(":payment_method", $payment_method);
+            $pay_stmt->bindParam(":transaction_id", $transaction_id);
+            $pay_stmt->bindParam(":notes", $notes);
+            $pay_stmt->bindParam(":payment_date", $payment_date);
+            $pay_stmt->execute();
+
+            // تحديث الخدمة
+            $new_amount_paid = $already_paid + $payment_for_this_service;
+            $new_remaining = $service_cost - $new_amount_paid;
+            $new_status = ($new_remaining <= 0) ? 'paid' : 'partial';
+
+            $update_query = "UPDATE services SET 
+                             amount_paid = :amount_paid, 
+                             remaining_amount = :remaining_amount, 
+                             payment_status = :payment_status,
+                             payment_method = :payment_method,
+                             transaction_id = :transaction_id
+                             WHERE id = :service_id";
+            $update_stmt = $db->prepare($update_query);
+            $update_stmt->bindParam(":amount_paid", $new_amount_paid);
+            $update_stmt->bindParam(":remaining_amount", $new_remaining);
+            $update_stmt->bindParam(":payment_status", $new_status);
+            $update_stmt->bindParam(":payment_method", $payment_method);
+            $update_stmt->bindParam(":transaction_id", $transaction_id);
+            $update_stmt->bindParam(":service_id", $service_id);
+            $update_stmt->execute();
+
+            $processed_services[] = [
+                "service_id" => $service_id,
+                "amount_applied" => $payment_for_this_service,
+                "new_status" => $new_status
+            ];
+
+            $remaining_to_distribute -= $payment_for_this_service;
+        }
+
+        $db->commit();
+
+        echo json_encode([
+            "message" => "Bulk payment processed successfully",
+            "success" => true,
+            "applied_amount" => $total_payment_amount - $remaining_to_distribute,
+            "refund_amount" => $remaining_to_distribute,
+            "processed_count" => count($processed_services),
+            "details" => $processed_services
+        ]);
+
+    } catch (Exception $e) {
+        if ($db->inTransaction()) $db->rollBack();
+        log_debug("Bulk Payment Error: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode(["message" => $e->getMessage(), "success" => false]);
+    }
+}
+
+
 function getPayments($db, $params) {
     try {
         $service_id = isset($params['service_id']) ? $params['service_id'] : null;
+        $vehicle_id = isset($params['vehicle_id']) ? $params['vehicle_id'] : null;
         
-        log_debug("GET Payments - service_id: " . ($service_id ? $service_id : "ALL"));
+        $query = "SELECT p.*, s.type as service_type, s.vehicle_id 
+                  FROM payments p 
+                  JOIN services s ON p.service_id = s.id";
         
-        $query = "SELECT * FROM payments";
-        
+        $where_clauses = [];
+        $query_params = [];
+
         if ($service_id && $service_id !== 'all') {
-            $query .= " WHERE service_id = :service_id";
+            $where_clauses[] = "p.service_id = :service_id";
+            $query_params[':service_id'] = $service_id;
         }
 
-        $query .= " ORDER BY payment_date DESC, created_at DESC";
-        $stmt = $db->prepare($query);
-        if ($service_id && $service_id !== 'all') {
-            $stmt->bindParam(":service_id", $service_id);
+        if ($vehicle_id && $vehicle_id !== 'all') {
+            $where_clauses[] = "s.vehicle_id = :vehicle_id";
+            $query_params[':vehicle_id'] = $vehicle_id;
         }
+
+        if (!empty($where_clauses)) {
+            $query .= " WHERE " . implode(" AND ", $where_clauses);
+        }
+
+        $query .= " ORDER BY p.payment_date DESC, p.created_at DESC";
+        $stmt = $db->prepare($query);
+        
+        foreach ($query_params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        
         $stmt->execute();
         
         $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        log_debug("Found " . count($payments) . " payments");
         echo json_encode($payments);
         
     } catch (Exception $e) {

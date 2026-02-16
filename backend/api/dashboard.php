@@ -33,11 +33,25 @@ try {
     $servicesStmt->execute();
     $activeServices = $servicesStmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-    // إجمالي الإيرادات
-    $revenueQuery = "SELECT SUM(amount_paid) as total FROM services";
+    // إجمالي الإيرادات (من المدفوعات الفعلية)
+    $revenueQuery = "SELECT SUM(amount) as total FROM payments";
     $revenueStmt = $db->prepare($revenueQuery);
     $revenueStmt->execute();
     $totalRevenue = $revenueStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+    // إجمالي المصروفات
+    $expenseQuery = "SELECT SUM(paid_amount) as total FROM purchase_invoices";
+    $expenseStmt = $db->prepare($expenseQuery);
+    $expenseStmt->execute();
+    $totalExpenses = $expenseStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+    // إجمالي الإيرادات المعلقة
+    $pendingQuery = "SELECT SUM(remaining_amount) as total FROM services";
+    $pendingStmt = $db->prepare($pendingQuery);
+    $pendingStmt->execute();
+    $totalPending = $pendingStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+
+    $mainFund = (float)$totalRevenue - (float)$totalExpenses;
 
     // الخدمات الأخيرة
     $recentServicesQuery = "SELECT s.*, v.make, v.model, v.license_plate 
@@ -54,7 +68,10 @@ try {
             "total_customers" => (int)$customerCount,
             "total_vehicles" => (int)$vehicleCount,
             "active_services" => (int)$activeServices,
-            "total_revenue" => (float)$totalRevenue
+            "total_revenue" => (float)$totalRevenue,
+            "total_expenses" => (float)$totalExpenses,
+            "total_pending" => (float)$totalPending,
+            "main_fund" => (float)$mainFund
         ],
         "recent_services" => $recentServices
     ]);

@@ -125,136 +125,135 @@ $translations = [
     ]
 ];
 
+// استلام الفلاتر المحددة
+$customerId = isset($_GET['customer_id']) ? $_GET['customer_id'] : null;
+$vehicleId = isset($_GET['vehicle_id']) ? $_GET['vehicle_id'] : null;
+
 // اختيار الترجمة المناسبة
 $tr = $translations[$lang];
 
 // جلب البيانات
-if ($reportType === 'receipts') {
-    // استعلام الإيصالات (المدفوعات)
+if ($reportType === 'fund') {
+    // استعلام الصندوق (كل الحركات)
+    $query_in = "SELECT p.*, 'in' as trans_type, c.name as entity_name 
+                 FROM payments p 
+                 LEFT JOIN services s ON p.service_id = s.id 
+                 LEFT JOIN vehicles v ON s.vehicle_id = v.id 
+                 LEFT JOIN customers c ON v.customer_id = c.id
+                 WHERE 1=1";
+    $query_out = "SELECT pp.*, 'out' as trans_type, sup.name as entity_name 
+                  FROM purchase_payments pp 
+                  LEFT JOIN purchase_invoices pi ON pp.invoice_id = pi.id 
+                  LEFT JOIN suppliers sup ON pi.supplier_id = sup.id
+                  WHERE 1=1";
+    
+    $params = [];
+    if ($startDate) {
+        $query_in .= " AND DATE(p.payment_date) >= :start_date";
+        $query_out .= " AND DATE(pp.payment_date) >= :start_date";
+        $params[':start_date'] = $startDate;
+    }
+    if ($endDate) {
+        $query_in .= " AND DATE(p.payment_date) <= :end_date";
+        $query_out .= " AND DATE(pp.payment_date) <= :end_date";
+        $params[':end_date'] = $endDate;
+    }
+
+    $stmt_in = $db->prepare($query_in);
+    $stmt_in->execute($params);
+    $in_data = $stmt_in->fetchAll(PDO::FETCH_ASSOC);
+
+    $stmt_out = $db->prepare($query_out);
+    $stmt_out->execute($params);
+    $out_data = $stmt_out->fetchAll(PDO::FETCH_ASSOC);
+
+    $fundData = array_merge($in_data, $out_data);
+    usort($fundData, function($a, $b) {
+        return strtotime($b['payment_date']) - strtotime($a['payment_date']);
+    });
+
+} elseif ($reportType === 'receipts') {
+    // ... (existing receipts query remains same)
     $query = "SELECT p.*, s.type as service_type, v.make, v.model, v.license_plate, c.name as customer_name, c.phone as customer_phone 
               FROM payments p 
               LEFT JOIN services s ON p.service_id = s.id 
               LEFT JOIN vehicles v ON s.vehicle_id = v.id 
-              LEFT JOIN customers c ON v.customer_id = c.id";
+              LEFT JOIN customers c ON v.customer_id = c.id
+              WHERE 1=1";
     
     $params = [];
-    if ($startDate && $endDate) {
-        $query .= " WHERE DATE(p.payment_date) BETWEEN :start_date AND :end_date";
-        $params[':start_date'] = $startDate;
-        $params[':end_date'] = $endDate;
-    } elseif ($startDate) {
-        $query .= " WHERE DATE(p.payment_date) >= :start_date";
-        $params[':start_date'] = $startDate;
-    } elseif ($endDate) {
-        $query .= " WHERE DATE(p.payment_date) <= :end_date";
-        $params[':end_date'] = $endDate;
-    }
+    if ($startDate) { $query .= " AND DATE(p.payment_date) >= :start_date"; $params[':start_date'] = $startDate; }
+    if ($endDate) { $query .= " AND DATE(p.payment_date) <= :end_date"; $params[':end_date'] = $endDate; }
     
     $query .= " ORDER BY p.payment_date DESC";
-    
     $stmt = $db->prepare($query);
     $stmt->execute($params);
     $receiptsData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } elseif ($reportType === 'payments') {
-    // استعلام المدفوعات (للموردين)
     $query = "SELECT pp.*, pi.invoice_number, s.name as supplier_name 
               FROM purchase_payments pp 
               LEFT JOIN purchase_invoices pi ON pp.invoice_id = pi.id 
-              LEFT JOIN suppliers s ON pi.supplier_id = s.id";
+              LEFT JOIN suppliers s ON pi.supplier_id = s.id
+              WHERE 1=1";
     
     $params = [];
-    if ($startDate && $endDate) {
-        $query .= " WHERE DATE(pp.payment_date) BETWEEN :start_date AND :end_date";
-        $params[':start_date'] = $startDate;
-        $params[':end_date'] = $endDate;
-    } elseif ($startDate) {
-        $query .= " WHERE DATE(pp.payment_date) >= :start_date";
-        $params[':start_date'] = $startDate;
-    } elseif ($endDate) {
-        $query .= " WHERE DATE(pp.payment_date) <= :end_date";
-        $params[':end_date'] = $endDate;
-    }
+    if ($startDate) { $query .= " AND DATE(pp.payment_date) >= :start_date"; $params[':start_date'] = $startDate; }
+    if ($endDate) { $query .= " AND DATE(pp.payment_date) <= :end_date"; $params[':end_date'] = $endDate; }
     
     $query .= " ORDER BY pp.payment_date DESC";
-    
     $stmt = $db->prepare($query);
     $stmt->execute($params);
     $paymentsData = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
 } elseif ($reportType === 'suppliers') {
-    // استعلام فواتير الموردين
     $query = "SELECT pi.*, s.name as supplier_name, s.contact_person, s.phone as supplier_phone 
               FROM purchase_invoices pi 
-              LEFT JOIN suppliers s ON pi.supplier_id = s.id";
+              LEFT JOIN suppliers s ON pi.supplier_id = s.id
+              WHERE 1=1";
     
     $params = [];
-    if ($startDate && $endDate) {
-        $query .= " WHERE pi.invoice_date BETWEEN :start_date AND :end_date";
-        $params[':start_date'] = $startDate;
-        $params[':end_date'] = $endDate;
-    } elseif ($startDate) {
-        $query .= " WHERE pi.invoice_date >= :start_date";
-        $params[':start_date'] = $startDate;
-    } elseif ($endDate) {
-        $query .= " WHERE pi.invoice_date <= :end_date";
-        $params[':end_date'] = $endDate;
-    }
+    if ($startDate) { $query .= " AND pi.invoice_date >= :start_date"; $params[':start_date'] = $startDate; }
+    if ($endDate) { $query .= " AND pi.invoice_date <= :end_date"; $params[':end_date'] = $endDate; }
     
     $query .= " ORDER BY pi.invoice_date DESC";
-    
     $stmt = $db->prepare($query);
     $stmt->execute($params);
     $suppliersData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
-    // استعلام الفواتير (الخدمات) - يستخدم للتقرير العام وتقرير الفواتير
+    // General / Invoices
     $query = "SELECT s.*, v.make, v.model, v.license_plate, c.name as customer_name, c.phone as customer_phone 
               FROM services s 
               LEFT JOIN vehicles v ON s.vehicle_id = v.id 
-              LEFT JOIN customers c ON v.customer_id = c.id";
+              LEFT JOIN customers c ON v.customer_id = c.id
+              WHERE 1=1";
 
     $params = [];
-    if ($startDate && $endDate) {
-        $query .= " WHERE s.date BETWEEN :start_date AND :end_date";
-        $params[':start_date'] = $startDate;
-        $params[':end_date'] = $endDate;
-    } elseif ($startDate) {
-        $query .= " WHERE s.date >= :start_date";
-        $params[':start_date'] = $startDate;
-    } elseif ($endDate) {
-        $query .= " WHERE s.date <= :end_date";
-        $params[':end_date'] = $endDate;
-    }
+    if ($startDate) { $query .= " AND s.date >= :start_date"; $params[':start_date'] = $startDate; }
+    if ($endDate) { $query .= " AND s.date <= :end_date"; $params[':end_date'] = $endDate; }
 
     $query .= " ORDER BY s.date DESC";
-
     $stmt = $db->prepare($query);
     $stmt->execute($params);
     $allServices = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // تقسيم البيانات للتقرير العام فقط
-    if ($reportType === 'general') {
-        $completedServices = [];
-        $pendingServices = [];
-        $customerSummary = [];
+    $completedServices = [];
+    $pendingServices = [];
+    $customerSummary = [];
 
-        foreach ($allServices as $row) {
-            $isPaid = ($row['payment_status'] === 'paid' || floatval($row['remaining_amount']) <= 0);
-            if ($isPaid) {
-                $completedServices[] = $row;
-            } else {
-                $pendingServices[] = $row;
-            }
-            
-            // تجميع البيانات
-            $key = ($row['customer_name'] ?? 'Unknown') . '_' . ($row['customer_phone'] ?? '');
-            if (!isset($customerSummary[$key])) {
-                $customerSummary[$key] = ['name' => $row['customer_name'], 'phone' => $row['customer_phone'], 'cost' => 0, 'paid' => 0, 'remaining' => 0];
-            }
-            $customerSummary[$key]['cost'] += floatval($row['cost']);
-            $customerSummary[$key]['paid'] += floatval($row['amount_paid']);
-            $customerSummary[$key]['remaining'] += floatval($row['remaining_amount']);
+    foreach ($allServices as $row) {
+        if ($row['payment_status'] === 'paid' || floatval($row['remaining_amount']) <= 0) {
+            $completedServices[] = $row;
+        } else {
+            $pendingServices[] = $row;
         }
+        $key = ($row['customer_name'] ?? 'Unknown') . '_' . ($row['customer_phone'] ?? '');
+        if (!isset($customerSummary[$key])) {
+            $customerSummary[$key] = ['name' => $row['customer_name'], 'phone' => $row['customer_phone'], 'cost' => 0, 'paid' => 0, 'remaining' => 0];
+        }
+        $customerSummary[$key]['cost'] += floatval($row['cost']);
+        $customerSummary[$key]['paid'] += floatval($row['amount_paid']);
+        $customerSummary[$key]['remaining'] += floatval($row['remaining_amount']);
     }
 }
 
@@ -279,7 +278,7 @@ function get_payment_method_text($method, $tr) {
 }
 
 // بداية ملف XML
-echo '<?xml version="1.0"?>';
+echo '<?xml version="1.0" encoding="UTF-8"?>';
 echo '<?mso-application progid="Excel.Sheet"?>';
 ?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
@@ -399,15 +398,15 @@ echo '<?mso-application progid="Excel.Sheet"?>';
    <Row ss:Height="10"/>
    <Row ss:Height="18">
     <Cell ss:MergeAcross="1" ss:StyleID="sSummaryLabel"><Data ss:Type="String"><?php echo $tr['total_revenue_summary']; ?></Data></Cell>
-    <Cell ss:StyleID="sSummaryValue"><Data ss:Type="Number"><?php echo $totalCost; ?></Data></Cell>
+    <Cell ss:StyleID="sSummaryValue"><Data ss:Type="Number"><?php echo floatval($totalCost); ?></Data></Cell>
    </Row>
    <Row ss:Height="18">
     <Cell ss:MergeAcross="1" ss:StyleID="sSummaryLabel"><Data ss:Type="String"><?php echo $tr['total_paid_summary']; ?></Data></Cell>
-    <Cell ss:StyleID="sSummaryValue"><Data ss:Type="Number"><?php echo $totalPaid; ?></Data></Cell>
+    <Cell ss:StyleID="sSummaryValue"><Data ss:Type="Number"><?php echo floatval($totalPaid); ?></Data></Cell>
    </Row>
    <Row ss:Height="18">
     <Cell ss:MergeAcross="1" ss:StyleID="sSummaryLabel"><Data ss:Type="String"><?php echo $tr['total_pending_summary']; ?></Data></Cell>
-    <Cell ss:StyleID="sSummaryValue"><Data ss:Type="Number"><?php echo $totalRemaining; ?></Data></Cell>
+    <Cell ss:StyleID="sSummaryValue"><Data ss:Type="Number"><?php echo floatval($totalRemaining); ?></Data></Cell>
    </Row>
    <Row ss:Height="10"/>
 
@@ -422,17 +421,17 @@ echo '<?mso-application progid="Excel.Sheet"?>';
    <Row>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['name']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['phone']); ?></Data></Cell>
-    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo $row['cost']; ?></Data></Cell>
-    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo $row['paid']; ?></Data></Cell>
-    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo $row['remaining']; ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['cost']); ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['paid']); ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['remaining']); ?></Data></Cell>
    </Row>
    <?php endforeach; ?>
    <Row>
        <Cell ss:Index="1" ss:StyleID="sTotal"><Data ss:Type="String"><?php echo $tr['total_amount']; ?></Data></Cell>
        <Cell ss:StyleID="sTotal"/>
-       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo $totalCost; ?></Data></Cell>
-       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo $totalPaid; ?></Data></Cell>
-       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo $totalRemaining; ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalCost); ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalPaid); ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalRemaining); ?></Data></Cell>
    </Row>
   </Table>
   <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
@@ -526,25 +525,25 @@ echo '<?mso-application progid="Excel.Sheet"?>';
    </Row>
    <?php foreach($data as $row): ?>
    <Row>
-    <Cell ss:StyleID="sData"><Data ss:Type="Number"><?php echo $row['id']; ?></Data></Cell>
+    <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo $row['id']; ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['make'] . ' ' . $row['model'] . ' (' . $row['license_plate'] . ')'); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['customer_name']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape(get_status_text($row['type'], $tr)); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['description']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['technician']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo $row['date']; ?></Data></Cell>
-    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo $row['cost']; ?></Data></Cell>
-    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo $row['amount_paid']; ?></Data></Cell>
-    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo $row['remaining_amount']; ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['cost']); ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['amount_paid']); ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['remaining_amount']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape(get_status_text($row['status'], $tr)); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape(get_payment_status_text($row['payment_status'], $tr)); ?></Data></Cell>
    </Row>
    <?php endforeach; ?>
    <Row>
        <Cell ss:Index="7" ss:StyleID="sTotal"><Data ss:Type="String"><?php echo $tr['total_amount']; ?></Data></Cell>
-       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo $totalCost; ?></Data></Cell>
-       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo $totalPaid; ?></Data></Cell>
-       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo $totalRemaining; ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalCost); ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalPaid); ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalRemaining); ?></Data></Cell>
    </Row>
   </Table>
   <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
@@ -618,7 +617,7 @@ echo '<?mso-application progid="Excel.Sheet"?>';
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['customer_name']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['make'] . ' ' . $row['model']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape(get_status_text($row['service_type'], $tr)); ?></Data></Cell>
-    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo $row['amount']; ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['amount']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape(get_payment_method_text($row['payment_method'], $tr)); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['transaction_id']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['notes']); ?></Data></Cell>
@@ -626,7 +625,7 @@ echo '<?mso-application progid="Excel.Sheet"?>';
    <?php endforeach; ?>
    <Row>
        <Cell ss:Index="5" ss:StyleID="sTotal"><Data ss:Type="String"><?php echo $tr['total_amount']; ?></Data></Cell>
-       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo $totalAmount; ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalAmount); ?></Data></Cell>
    </Row>
   </Table>
  </Worksheet>
@@ -670,14 +669,14 @@ echo '<?mso-application progid="Excel.Sheet"?>';
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo $row['payment_date']; ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['supplier_name']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['invoice_number']); ?></Data></Cell>
-    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo $row['amount']; ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['amount']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape(get_payment_method_text($row['payment_method'] ?? '', $tr)); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['notes']); ?></Data></Cell>
    </Row>
    <?php endforeach; ?>
    <Row>
        <Cell ss:Index="4" ss:StyleID="sTotal"><Data ss:Type="String"><?php echo $tr['total_amount']; ?></Data></Cell>
-       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo $totalAmount; ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalAmount); ?></Data></Cell>
    </Row>
   </Table>
  </Worksheet>
@@ -751,7 +750,7 @@ echo '<?mso-application progid="Excel.Sheet"?>';
        $remaining = $amount - $paid;
    ?>
    <Row>
-    <Cell ss:StyleID="sData"><Data ss:Type="Number"><?php echo $row['id']; ?></Data></Cell>
+    <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo $row['id']; ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['invoice_number']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['supplier_name']); ?></Data></Cell>
     <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['supplier_phone'] ?? ''); ?></Data></Cell>
@@ -765,9 +764,64 @@ echo '<?mso-application progid="Excel.Sheet"?>';
    <?php endforeach; ?>
    <Row>
        <Cell ss:Index="5" ss:StyleID="sTotal"><Data ss:Type="String"><?php echo $tr['total_amount']; ?></Data></Cell>
-       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo $totalAmount; ?></Data></Cell>
-       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo $totalPaid; ?></Data></Cell>
-       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo $totalRemaining; ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalAmount); ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalPaid); ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalRemaining); ?></Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
+ <?php }
+
+ // دالة لرسم ورقة الصندوق (Fund)
+ function renderFundWorksheet($title, $data, $tr, $isRtl, $startDate, $endDate) {
+    $totalIn = 0;
+    $totalOut = 0;
+    foreach ($data as $row) {
+        if ($row['trans_type'] === 'in') $totalIn += floatval($row['amount']);
+        else $totalOut += floatval($row['amount']);
+    }
+ ?>
+ <Worksheet ss:Name="<?php echo xml_escape($title); ?>">
+  <Table ss:ExpandedColumnCount="6" x:FullColumns="1" x:FullRows="1" ss:DefaultColumnWidth="60" ss:DefaultRowHeight="15">
+   <Column ss:Width="100"/> <!-- Date -->
+   <Column ss:Width="150"/> <!-- Entity -->
+   <Column ss:Width="80"/> <!-- Type -->
+   <Column ss:Width="80"/> <!-- In -->
+   <Column ss:Width="80"/> <!-- Out -->
+   <Column ss:Width="150"/> <!-- Notes -->
+
+   <Row ss:Height="25">
+    <Cell ss:MergeAcross="5" ss:StyleID="sTitle"><Data ss:Type="String"><?php echo xml_escape($title); ?></Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:MergeAcross="5" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php echo $tr['generated_on'] . ': ' . date('Y-m-d H:i'); ?></Data></Cell>
+   </Row>
+   <Row ss:Index="4">
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['date']; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $isRtl ? 'الجهة' : 'Entity'; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['type']; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $isRtl ? 'وارد' : 'Income'; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $isRtl ? 'صادر' : 'Expense'; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['description']; ?></Data></Cell>
+   </Row>
+   <?php foreach($data as $row): ?>
+   <Row>
+    <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo $row['payment_date']; ?></Data></Cell>
+    <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['entity_name']); ?></Data></Cell>
+    <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo $row['trans_type'] === 'in' ? ($isRtl ? 'قبض' : 'Receipt') : ($isRtl ? 'صرف' : 'Payment'); ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['trans_type'] === 'in' ? $row['amount'] : 0); ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['trans_type'] === 'out' ? $row['amount'] : 0); ?></Data></Cell>
+    <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['notes']); ?></Data></Cell>
+   </Row>
+   <?php endforeach; ?>
+   <Row>
+       <Cell ss:Index="3" ss:StyleID="sTotal"><Data ss:Type="String"><?php echo $tr['total_amount']; ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalIn); ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalOut); ?></Data></Cell>
+   </Row>
+   <Row>
+       <Cell ss:Index="3" ss:StyleID="sTotal"><Data ss:Type="String"><?php echo $isRtl ? 'الرصيد الحالي' : 'Current Balance'; ?></Data></Cell>
+       <Cell ss:MergeAcross="1" ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalIn - $totalOut); ?></Data></Cell>
    </Row>
   </Table>
  </Worksheet>
@@ -780,6 +834,8 @@ echo '<?mso-application progid="Excel.Sheet"?>';
      renderPaymentsWorksheet($tr['payments_report'], $paymentsData, $tr, $isRtl, $startDate, $endDate);
  } elseif ($reportType === 'suppliers') {
      renderSuppliersWorksheet($tr['suppliers_report'], $suppliersData, $tr, $isRtl, $startDate, $endDate);
+ } elseif ($reportType === 'fund') {
+     renderFundWorksheet($isRtl ? 'تقرير الصندوق' : 'Fund Report', $fundData, $tr, $isRtl, $startDate, $endDate);
  } elseif ($reportType === 'invoices') {
      renderWorksheet($tr['invoices_report'], $allServices, $tr, $isRtl, $startDate, $endDate);
  } else {

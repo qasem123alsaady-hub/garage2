@@ -1,3 +1,3 @@
-cd C:\Users\Kasem\Documents\GitHub\garage2\frontend
+cd C:\xampp\htdocs\car-garage\frontend
 npm install
 npm run dev

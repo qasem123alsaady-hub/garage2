@@ -20,7 +20,7 @@ class Database {
             if ($exception->getCode() == 1049) {
                 $this->createDatabase();
             } else {
-                echo "Connection error: " . $exception->getMessage();
+                error_log("Connection error: " . $exception->getMessage());
             }
         }
         return $this->conn;
@@ -40,7 +40,7 @@ class Database {
             // إنشاء الجداول
             $this->createTables();
         } catch(PDOException $exception) {
-            echo "Database creation error: " . $exception->getMessage();
+            error_log("Database creation error: " . $exception->getMessage());
         }
     }
 
@@ -58,7 +58,7 @@ class Database {
 
         // إنشاء جدول المركبات
         $vehiclesTable = "CREATE TABLE IF NOT EXISTS vehicles (
-            id INT(11) AUTO_INCREMENT PRIMARY KEY,
+            id VARCHAR(50) PRIMARY KEY,
             make VARCHAR(100) NOT NULL,
             model VARCHAR(100) NOT NULL,
             year INT(4) NOT NULL,
@@ -72,8 +72,8 @@ class Database {
 
         // إنشاء جدول الخدمات
         $servicesTable = "CREATE TABLE IF NOT EXISTS services (
-            id INT(11) AUTO_INCREMENT PRIMARY KEY,
-            vehicle_id INT(11) NOT NULL,
+            id VARCHAR(50) PRIMARY KEY,
+            vehicle_id VARCHAR(50) NOT NULL,
             type VARCHAR(255) NOT NULL,
             description TEXT,
             status ENUM('pending', 'in-progress', 'completed', 'cancelled') DEFAULT 'pending',
@@ -93,8 +93,8 @@ class Database {
 
         // إنشاء جدول الدفعات
         $paymentsTable = "CREATE TABLE IF NOT EXISTS payments (
-            id INT(11) AUTO_INCREMENT PRIMARY KEY,
-            service_id INT(11) NOT NULL,
+            id VARCHAR(50) PRIMARY KEY,
+            service_id VARCHAR(50) NOT NULL,
             amount DECIMAL(10,2) NOT NULL,
             payment_method ENUM('cash', 'card', 'transfer', 'check') DEFAULT 'cash',
             payment_date DATE NOT NULL,
@@ -106,7 +106,7 @@ class Database {
 
         // إنشاء جدول المستخدمين - محدث لدعم العملاء
         $usersTable = "CREATE TABLE IF NOT EXISTS users (
-            id INT(11) AUTO_INCREMENT PRIMARY KEY,
+            id VARCHAR(50) PRIMARY KEY,
             username VARCHAR(50) UNIQUE NOT NULL,
             password VARCHAR(255) NOT NULL,
             name VARCHAR(100) NOT NULL,
@@ -228,7 +228,7 @@ class Database {
             $this->createDefaultUsers();
 
         } catch(PDOException $exception) {
-            echo "Error creating tables: " . $exception->getMessage();
+            error_log("Error creating tables: " . $exception->getMessage());
         }
     }
 
@@ -262,11 +262,13 @@ class Database {
             $stmt->execute();
 
             if ($stmt->rowCount() == 0) {
+                $userId = 'u' . time() . rand(1000, 9999);
                 $hashedPassword = password_hash($user['password'], PASSWORD_DEFAULT);
-                $insertUser = "INSERT INTO users (username, password, name, role) VALUES 
-                    (:username, :password, :name, :role)";
+                $insertUser = "INSERT INTO users (id, username, password, name, role) VALUES 
+                    (:id, :username, :password, :name, :role)";
                 
                 $stmt = $this->conn->prepare($insertUser);
+                $stmt->bindParam(':id', $userId);
                 $stmt->bindParam(':username', $user['username']);
                 $stmt->bindParam(':password', $hashedPassword);
                 $stmt->bindParam(':name', $user['name']);

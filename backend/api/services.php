@@ -80,6 +80,73 @@ function handleGet($db, $params) {
 
 function handlePost($db, $input) {
     try {
+        // التحقق مما إذا كان المدخل مصفوفة من الخدمات
+        if (isset($input['services']) && is_array($input['services'])) {
+            $services = $input['services'];
+            $results = [];
+            $all_success = true;
+
+            foreach ($services as $index => $serviceData) {
+                // استخدام البيانات المشتركة إذا لم تكن موجودة في خدمة معينة
+                $serviceData['vehicle_id'] = $serviceData['vehicle_id'] ?? $input['vehicle_id'] ?? null;
+                $serviceData['technician'] = $serviceData['technician'] ?? $input['technician'] ?? null;
+                $serviceData['date'] = $serviceData['date'] ?? $input['date'] ?? null;
+                $serviceData['status'] = $serviceData['status'] ?? $input['status'] ?? 'pending';
+                $serviceData['payment_status'] = $serviceData['payment_status'] ?? $input['payment_status'] ?? 'pending';
+
+                // التحقق من البيانات المطلوبة لكل خدمة
+                $required_fields = ['vehicle_id', 'type', 'description', 'technician', 'date', 'cost'];
+                $missing_fields = [];
+                foreach ($required_fields as $field) {
+                    if (!isset($serviceData[$field]) || empty($serviceData[$field])) {
+                        $missing_fields[] = $field;
+                    }
+                }
+
+                if (!empty($missing_fields)) {
+                    $results[] = ["success" => false, "message" => "Missing fields: " . implode(', ', $missing_fields), "data" => $serviceData];
+                    $all_success = false;
+                    continue;
+                }
+
+                $query = "INSERT INTO services (id, vehicle_id, type, description, technician, date, cost, status, payment_status, amount_paid, remaining_amount, created_at) 
+                          VALUES (:id, :vehicle_id, :type, :description, :technician, :date, :cost, :status, :payment_status, :amount_paid, :remaining_amount, NOW())";
+                $stmt = $db->prepare($query);
+                
+                $serviceId = 's' . time() . rand(1000, 9999) . $index;
+                $amount_paid = 0;
+                $remaining_amount = $serviceData['cost'];
+                
+                $stmt->bindParam(":id", $serviceId);
+                $stmt->bindParam(":vehicle_id", $serviceData['vehicle_id']);
+                $stmt->bindParam(":type", $serviceData['type']);
+                $stmt->bindParam(":description", $serviceData['description']);
+                $stmt->bindParam(":technician", $serviceData['technician']);
+                $stmt->bindParam(":date", $serviceData['date']);
+                $stmt->bindParam(":cost", $serviceData['cost']);
+                $stmt->bindParam(":status", $serviceData['status']);
+                $stmt->bindParam(":payment_status", $serviceData['payment_status']);
+                $stmt->bindParam(":amount_paid", $amount_paid);
+                $stmt->bindParam(":remaining_amount", $remaining_amount);
+                
+                if ($stmt->execute()) {
+                    $results[] = ["success" => true, "id" => $serviceId];
+                } else {
+                    $errorInfo = $stmt->errorInfo();
+                    $results[] = ["success" => false, "message" => $errorInfo[2]];
+                    $all_success = false;
+                }
+            }
+
+            echo json_encode([
+                "message" => $all_success ? "تم إضافة جميع الخدمات بنجاح" : "تم إضافة بعض الخدمات مع وجود أخطاء",
+                "success" => $all_success,
+                "results" => $results
+            ]);
+            return;
+        }
+
+        // الحالة الأصلية: خدمة واحدة
         // التحقق من البيانات المطلوبة
         $required_fields = ['vehicle_id', 'type', 'description', 'technician', 'date', 'cost'];
         foreach ($required_fields as $field) {
@@ -170,6 +237,36 @@ function handlePut($db, $id, $input) {
         }
 
         if($stmt->execute()) {
+            // إذا تم تحديث التكلفة، نحتاج لإعادة حساب المبلغ المتبقي وحالة الدفع
+            if (isset($input['cost'])) {
+                // جلب البيانات المحدثة
+                $getStmt = $db->prepare("SELECT cost, amount_paid FROM services WHERE id = :id");
+                $getStmt->bindParam(":id", $id);
+                $getStmt->execute();
+                $service = $getStmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($service) {
+                    $newCost = floatval($service['cost']);
+                    $amountPaid = floatval($service['amount_paid']);
+                    $newRemaining = $newCost - $amountPaid;
+                    
+                    if ($newRemaining < 0) $newRemaining = 0;
+
+                    $newStatus = 'pending';
+                    if ($newRemaining <= 0) {
+                        $newStatus = 'paid';
+                    } elseif ($amountPaid > 0) {
+                        $newStatus = 'partial';
+                    }
+
+                    $updateStatusStmt = $db->prepare("UPDATE services SET remaining_amount = :rem, payment_status = :status WHERE id = :id");
+                    $updateStatusStmt->bindParam(":rem", $newRemaining);
+                    $updateStatusStmt->bindParam(":status", $newStatus);
+                    $updateStatusStmt->bindParam(":id", $id);
+                    $updateStatusStmt->execute();
+                }
+            }
+
             echo json_encode([
                 "message" => "تم تحديث الخدمة بنجاح", 
                 "success" => true,

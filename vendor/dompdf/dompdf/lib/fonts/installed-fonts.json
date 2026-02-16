@@ -1,0 +1,8 @@
+{
+    "dejavu sans": {
+        "bold": "dejavu_sans_bold_cd2d75f7495889bb6c7a1513dc39f188",
+        "bold_italic": "C:\\xampp\\htdocs\\car-garage\\vendor\\dompdf\\dompdf\/lib\/fonts\/DejaVuSans-BoldOblique",
+        "italic": "C:\\xampp\\htdocs\\car-garage\\vendor\\dompdf\\dompdf\/lib\/fonts\/DejaVuSans-Oblique",
+        "normal": "C:\\xampp\\htdocs\\car-garage\\vendor\\dompdf\\dompdf\/lib\/fonts\/dejavu_sans_normal_9c235f145d97a45e667ed02168448cf7"
+    }
+}

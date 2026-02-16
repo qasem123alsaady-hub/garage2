@@ -26,27 +26,49 @@ if ($method == 'GET') {
 }
 
 elseif ($method == 'POST') {
-    if (empty($input['supplier_id']) || empty($input['amount'])) {
-        http_response_code(400);
-        echo json_encode(["success" => false, "message" => "Incomplete data"]);
-        exit();
+    // Handle both single and multiple invoices
+    $invoices = (isset($input[0]) && is_array($input[0])) ? $input : [$input];
+    $all_success = true;
+    $last_id = null;
+
+    $db->beginTransaction();
+
+    foreach ($invoices as $invoice) {
+        if (empty($invoice['supplier_id']) || !isset($invoice['amount'])) {
+            $all_success = false;
+            break;
+        }
+
+        $query = "INSERT INTO purchase_invoices (supplier_id, invoice_number, invoice_date, amount, items, paid_amount, status, created_at) 
+                  VALUES (:supplier_id, :invoice_number, :invoice_date, :amount, :items, 0, 'pending', NOW())";
+        
+        $stmt = $db->prepare($query);
+        
+        $stmt->bindParam(":supplier_id", $invoice['supplier_id']);
+        $stmt->bindParam(":invoice_number", $invoice['invoice_number']);
+        $stmt->bindParam(":invoice_date", $invoice['invoice_date']);
+        $stmt->bindParam(":amount", $invoice['amount']);
+        $stmt->bindParam(":items", $invoice['items']);
+
+        if (!$stmt->execute()) {
+            $all_success = false;
+            break;
+        }
+        $last_id = $db->lastInsertId();
     }
 
-    $query = "INSERT INTO purchase_invoices (supplier_id, invoice_number, invoice_date, amount, items, paid_amount, status, created_at) 
-              VALUES (:supplier_id, :invoice_number, :invoice_date, :amount, :items, 0, 'pending', NOW())";
-    
-    $stmt = $db->prepare($query);
-    
-    $stmt->bindParam(":supplier_id", $input['supplier_id']);
-    $stmt->bindParam(":invoice_number", $input['invoice_number']);
-    $stmt->bindParam(":invoice_date", $input['invoice_date']);
-    $stmt->bindParam(":amount", $input['amount']);
-    $stmt->bindParam(":items", $input['items']);
-
-    if ($stmt->execute()) {
-        echo json_encode(["success" => true, "message" => "Invoice added successfully", "id" => $db->lastInsertId()]);
+    if ($all_success) {
+        $db->commit();
+        $message = count($invoices) > 1 ? "Invoices added successfully" : "Invoice added successfully";
+        $response = ["success" => true, "message" => $message];
+        if (count($invoices) === 1) {
+            $response['id'] = $last_id;
+        }
+        echo json_encode($response);
     } else {
-        echo json_encode(["success" => false, "message" => "Unable to add invoice"]);
+        $db->rollBack();
+        http_response_code(400);
+        echo json_encode(["success" => false, "message" => "Unable to add invoice(s). Check data."]);
     }
 }
 
@@ -100,43 +122,49 @@ elseif ($method == 'PUT') {
     } 
     // تحديث بيانات الفاتورة العادية
     else {
-        // التحقق مما إذا كان تم إرسال المبلغ المدفوع لتحديثه
-        $update_paid = isset($input['paid_amount']);
-        
-        $query = "UPDATE purchase_invoices SET supplier_id = :supplier_id, invoice_number = :invoice_number, 
-                  invoice_date = :invoice_date, amount = :amount, items = :items";
-        
-        if ($update_paid) {
-            $query .= ", paid_amount = :paid_amount, status = :status";
-        }
-        
-        $query .= " WHERE id = :id";
-        
-        $stmt = $db->prepare($query);
-        $stmt->bindParam(":supplier_id", $input['supplier_id']);
-        $stmt->bindParam(":invoice_number", $input['invoice_number']);
-        $stmt->bindParam(":invoice_date", $input['invoice_date']);
-        $stmt->bindParam(":amount", $input['amount']);
-        $stmt->bindParam(":items", $input['items']);
-        $stmt->bindParam(":id", $input['id']);
+        // استخدام التحديث الديناميكي لتجنب الأخطاء عند إرسال بيانات جزئية
+        $fields = ['supplier_id', 'invoice_number', 'invoice_date', 'amount', 'items', 'paid_amount', 'status'];
+        $updates = [];
+        $params = [':id' => $input['id']];
 
-        if ($update_paid) {
-            $paid = floatval($input['paid_amount']);
-            $total = floatval($input['amount']);
-            $status = 'pending';
+        // جلب البيانات الحالية لحساب الحالة إذا لزم الأمر
+        if (isset($input['amount']) || isset($input['paid_amount'])) {
+            $stmt = $db->prepare("SELECT amount, paid_amount FROM purchase_invoices WHERE id = :id");
+            $stmt->execute([':id' => $input['id']]);
+            $current = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if ($paid >= $total) {
-                $status = 'paid';
-                // لا نجبر المبلغ المدفوع أن يساوي الإجمالي هنا للسماح بتصحيح الأخطاء، لكن الحالة تصبح مدفوعة
-            } elseif ($paid > 0) {
-                $status = 'partial';
+            if ($current) {
+                $amount = isset($input['amount']) ? floatval($input['amount']) : floatval($current['amount']);
+                $paid = isset($input['paid_amount']) ? floatval($input['paid_amount']) : floatval($current['paid_amount']);
+                
+                $status = 'pending';
+                if ($paid >= $amount) {
+                    $status = 'paid';
+                } elseif ($paid > 0) {
+                    $status = 'partial';
+                }
+                
+                // تحديث الحالة تلقائياً
+                $input['status'] = $status;
             }
-            
-            $stmt->bindParam(":paid_amount", $paid);
-            $stmt->bindParam(":status", $status);
         }
 
-        if ($stmt->execute()) {
+        foreach ($fields as $field) {
+            if (isset($input[$field])) {
+                $updates[] = "$field = :$field";
+                $params[":$field"] = $input[$field];
+            }
+        }
+
+        if (empty($updates)) {
+            echo json_encode(["success" => true, "message" => "No changes to update"]);
+            exit();
+        }
+
+        $query = "UPDATE purchase_invoices SET " . implode(', ', $updates) . " WHERE id = :id";
+        $stmt = $db->prepare($query);
+
+        if ($stmt->execute($params)) {
             echo json_encode(["success" => true, "message" => "Invoice updated successfully"]);
         } else {
             echo json_encode(["success" => false, "message" => "Unable to update invoice"]);
