@@ -1,5 +1,5 @@
 // استخدم متغير البيئة للـ API URL
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://garage2-r68a.onrender.com/backend/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://garage-backend.onrender.com/api';
 
 export const apiCall = async (endpoint, options = {}) => {
   // تنظيف الرابط من الـ // المكررة
