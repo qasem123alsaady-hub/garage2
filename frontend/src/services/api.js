@@ -1,21 +1,31 @@
-const BASE_URL = 'http://localhost/car-garage/backend/api';
+// استخدم متغير البيئة للـ API URL
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://garage2-r68a.onrender.com/api';
 
 export const apiCall = async (endpoint, options = {}) => {
-  const url = `${BASE_URL}/${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+  // تنظيف الرابط من الـ // المكررة
+  const url = `${BASE_URL}/${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
   
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `API call failed: ${response.statusText}`);
+  console.log('Calling API:', url); // للتشخيص
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `API call failed: ${response.statusText}`);
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('API call error:', error);
+    throw error;
   }
-  
-  return response.json();
 };
 
 export default {
