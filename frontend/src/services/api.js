@@ -1,11 +1,12 @@
 // استخدم متغير البيئة للـ API URL
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://garage2-r68a.onrender.com/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://garage2-r68a.onrender.com/backend/api';
 
 export const apiCall = async (endpoint, options = {}) => {
   // تنظيف الرابط من الـ // المكررة
   const url = `${BASE_URL}/${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
   
   console.log('Calling API:', url); // للتشخيص
+  console.log('Request options:', options); // للتشخيص
   
   try {
     const response = await fetch(url, {
@@ -16,14 +17,33 @@ export const apiCall = async (endpoint, options = {}) => {
       },
     });
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `API call failed: ${response.statusText}`);
+    console.log('Response status:', response.status); // للتشخيص
+    console.log('Response headers:', response.headers); // للتشخيص
+    
+    // محاولة قراءة الاستجابة كنص أولاً
+    const responseText = await response.text();
+    console.log('Response text:', responseText); // للتشخيص
+    
+    // محاولة تحويل النص إلى JSON
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse JSON:', e);
+      throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}`);
     }
     
-    return response.json();
+    if (!response.ok) {
+      throw new Error(responseData.message || `API call failed: ${response.statusText}`);
+    }
+    
+    return responseData;
   } catch (error) {
-    console.error('API call error:', error);
+    console.error('API call error:', {
+      message: error.message,
+      url: url,
+      type: error.name
+    });
     throw error;
   }
 };
