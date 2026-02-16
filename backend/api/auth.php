@@ -22,7 +22,7 @@ class Auth {
 
     // تسجيل الدخول
     public function login($username, $password) {
-        $query = "SELECT id, username, password, name, role, customer_id FROM " . $this->table_name . " WHERE username = :username";
+        $query = "SELECT id, username, password, name, role, customer_id FROM " . $this->table_name . " WHERE username = :username AND is_active = 1";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':username', $username);
         $stmt->execute();
@@ -42,7 +42,7 @@ class Auth {
                 ];
             }
         }
-        return ['success' => false, 'message' => 'Invalid credentials'];
+        return ['success' => false, 'message' => 'اسم المستخدم أو كلمة المرور غير صحيحة'];
     }
 }
 
@@ -56,8 +56,19 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($method == 'POST') {
     $data = json_decode(file_get_contents("php://input"));
     
-    if (isset($data->action) && $data->action === 'login') {
-        $result = $auth->login($data->username, $data->password);
+    // ✅ تأكد من وجود action في البيانات
+    $action = isset($data->action) ? $data->action : (isset($_POST['action']) ? $_POST['action'] : '');
+    
+    if ($action === 'login') {
+        $username = isset($data->username) ? $data->username : '';
+        $password = isset($data->password) ? $data->password : '';
+        
+        if (empty($username) || empty($password)) {
+            echo json_encode(['success' => false, 'message' => 'يرجى إدخال اسم المستخدم وكلمة المرور']);
+            exit();
+        }
+        
+        $result = $auth->login($username, $password);
         echo json_encode($result);
     } else {
         echo json_encode(['success' => false, 'message' => 'الإجراء غير معروف']);
