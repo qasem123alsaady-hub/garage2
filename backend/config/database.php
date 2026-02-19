@@ -1,34 +1,23 @@
 <?php
 class Database {
-    private $host;
-    private $db_name;
-    private $username;
-    private $password;
-    private $port;
+    private $host = "localhost";
+    private $db_name = "garage";
+    private $username = "root";
+    private $password = "";
     public $conn;
-
-    public function __construct() {
-        // Use environment variables for production (Render)
-        // Default to localhost for local development
-        $this->host = getenv('DB_HOST') ?: "localhost";
-        $this->db_name = getenv('DB_NAME') ?: "garage";
-        $this->username = getenv('DB_USER') ?: "root";
-        $this->password = getenv('DB_PASS') ?: "";
-        $this->port = getenv('DB_PORT') ?: "3306";
-    }
 
     public function getConnection() {
         $this->conn = null;
         try {
-            $dsn = "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";port=" . $this->port . ";charset=utf8";
-            $this->conn = new PDO($dsn, $this->username, $this->password);
+            $this->conn = new PDO("mysql:host=" . $this->host . ";dbname=" . $this->db_name, $this->username, $this->password);
+            $this->conn->exec("set names utf8");
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             
             // إنشاء جميع الجداول إذا لم تكن موجودة
             $this->createTables();
         } catch(PDOException $exception) {
-            // إنشاء قاعدة البيانات إذا لم تكن موجودة (فقط في المحيط المحلي عادة)
-            if ($exception->getCode() == 1049 && ($this->host == "localhost" || $this->host == "127.0.0.1")) {
+            // إنشاء قاعدة البيانات إذا لم تكن موجودة
+            if ($exception->getCode() == 1049) {
                 $this->createDatabase();
             } else {
                 error_log("Connection error: " . $exception->getMessage());
