@@ -6,8 +6,14 @@ $allowed_origins = [
     "http://localhost:5173"
 ];
 
-if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
-    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+
+if (in_array($origin, $allowed_origins)) {
+    header("Access-Control-Allow-Origin: $origin");
+    header("Access-Control-Allow-Credentials: true");
+} else {
+    // السماح للنطاق الرئيسي بشكل افتراضي لضمان عمل التطبيق حتى لو لم يصل الـ Origin بشكل صحيح
+    header("Access-Control-Allow-Origin: https://garage2-r68a.onrender.com");
     header("Access-Control-Allow-Credentials: true");
 }
 
@@ -16,7 +22,7 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-W
 
 // معالجة طلبات OPTIONS (Preflight)
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    header("HTTP/1.1 200 OK");
+    http_response_code(200);
     exit();
 }
 
