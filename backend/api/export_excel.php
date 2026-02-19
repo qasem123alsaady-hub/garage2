@@ -1,10 +1,9 @@
 <?php
-header("Access-Control-Allow-Origin: *");
+include_once 'cors.php';
 header("Content-Type: application/vnd.ms-excel; charset=UTF-8");
 header("Content-Disposition: attachment; filename=garage_report_" . date('Y-m-d') . ".xls");
 header("Pragma: no-cache");
 header("Expires: 0");
-
 include_once '../config/database.php';
 
 try {

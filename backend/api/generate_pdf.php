@@ -2,17 +2,8 @@
 // Clear any previous output
 if (ob_get_level()) ob_end_clean();
 ob_start();
-
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    ob_end_clean();
-    http_response_code(200);
-    exit();
-}
-
+include_once 'cors.php';
+ 
 function log_pdf_debug($message) {
     $log_file = __DIR__ . '/debug.log';
     $timestamp = date('Y-m-d H:i:s');
