@@ -40,7 +40,13 @@ class Auth {
 $database = new Database();
 $db = $database->getConnection();
 
+// Logging for debug
+$log_file = 'debug.log';
+$timestamp = date('[Y-m-d H:i:s] ');
+file_put_contents($log_file, $timestamp . "Auth.php called - Method: " . $_SERVER['REQUEST_METHOD'] . "\n", FILE_APPEND);
+
 if (!$db) {
+    file_put_contents($log_file, $timestamp . "Database connection failed\n", FILE_APPEND);
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Database connection failed']);
     exit();
