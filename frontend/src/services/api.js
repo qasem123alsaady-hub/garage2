@@ -1,23 +1,36 @@
-const BASE_URL = 'http://https://garage2-1.onrender.com//backend/api';
+const BASE_URL = 'https://garage2-1.onrender.com/backend/api';
 
 export const apiCall = async (endpoint, options = {}) => {
-  const url = `${BASE_URL}/${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+  // إزالة أي شرطة زائدة من البداية
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  const url = `${BASE_URL}/${cleanEndpoint}`;
   
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `API call failed: ${response.statusText}`);
+  console.log('🌐 Calling API:', url);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+    
+    console.log('📥 Response status:', response.status);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `API call failed: ${response.statusText}`);
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('❌ API Error:', error);
+    throw error;
   }
-  
-  return response.json();
 };
 
+// ... rest of your exports remain the same
 export default {
   customers: {
     getAll: () => apiCall('customers.php'),
