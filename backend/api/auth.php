@@ -15,18 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit();
 }
 
-// تشخيص المسار
-$database_path = __DIR__ . '/../config/database.php';
-echo json_encode([
-    'status' => 'diagnostic',
-    'current_file' => __FILE__,
-    'current_dir' => __DIR__,
-    'database_path' => $database_path,
-    'database_exists' => file_exists($database_path) ? 'yes' : 'no',
-    'database_readable' => is_readable($database_path) ? 'yes' : 'no'
-]);
-exit(); // سنوقف التنفيذ هنا مؤقتاً لنرى نتيجة التشخيص
-
 include_once '../config/database.php';
 
 class Auth {
@@ -39,7 +27,7 @@ class Auth {
 
     // تسجيل الدخول
     public function login($username, $password) {
-        $query = "SELECT id, username, password, name, role, customer_id FROM " . $this->table_name . " WHERE username = :username AND is_active = 1";
+        $query = "SELECT id, username, password, name, role, customer_id FROM " . $this->table_name . " WHERE username = :username";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':username', $username);
         $stmt->execute();
