@@ -39,6 +39,13 @@ class Auth {
 // معالجة طلبات تسجيل الدخول فقط
 $database = new Database();
 $db = $database->getConnection();
+
+if (!$db) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
+    exit();
+}
+
 $auth = new Auth($db);
 
 $method = $_SERVER['REQUEST_METHOD'];
