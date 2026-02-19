@@ -12,8 +12,6 @@ header("Access-Control-Max-Age: 86400");
 // Handle OPTIONS requests
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
-    exit;
+    exit();
 }
-
-// Clean any previous output
-if (ob_get_length()) ob_clean();
+?>
