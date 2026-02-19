@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost/car-garage/backend/api';
+const BASE_URL = 'http://https://garage2-1.onrender.com//backend/api';
 
 export const apiCall = async (endpoint, options = {}) => {
   const url = `${BASE_URL}/${endpoint}`;
