@@ -7,6 +7,13 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
-    allowedHosts: ['garage2-1.onrender.com']
+    allowedHosts: ['garage2-1.onrender.com'],
+    proxy: {
+      '/car-garage': {
+        target: 'http://localhost',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   }
 })
