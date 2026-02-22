@@ -47,10 +47,15 @@ $translations = [
         'receipts_report' => 'تقرير المقبوضات',
         'payments_report' => 'تقرير المدفوعات',
         'suppliers_report' => 'تقرير الموردين',
+        'employee_statements' => 'كشوفات الموظفين',
         // Headers
         'id' => 'المعرف',
         'vehicle' => 'المركبة',
         'customer' => 'العميل',
+        'employee' => 'الموظف',
+        'position' => 'المسمى الوظيفي',
+        'advance' => 'السلفة',
+        'deduction' => 'الخصم',
         'type' => 'نوع الخدمة',
         'description' => 'الوصف',
         'technician' => 'الفني',
@@ -96,10 +101,15 @@ $translations = [
         'receipts_report' => 'Receipts Report',
         'payments_report' => 'Payments Report',
         'suppliers_report' => 'Suppliers Report',
+        'employee_statements' => 'Employee Statements',
         // Headers
         'id' => 'ID',
         'vehicle' => 'Vehicle',
         'customer' => 'Customer',
+        'employee' => 'Employee',
+        'position' => 'Position',
+        'advance' => 'Advance',
+        'deduction' => 'Deduction',
         'type' => 'Service Type',
         'description' => 'Description',
         'technician' => 'Technician',
@@ -167,7 +177,21 @@ if ($reportType === 'fund') {
     $stmt_out->execute($params);
     $out_data = $stmt_out->fetchAll(PDO::FETCH_ASSOC);
 
-    $fundData = array_merge($in_data, $out_data);
+    // Get Employee Payments
+    $query_emp = "SELECT ep.*, 'out' as trans_type, e.name as entity_name, 'payroll' as source
+                  FROM employee_payments ep 
+                  LEFT JOIN employees e ON ep.employee_id = e.id
+                  WHERE ep.status = 'paid'";
+    if ($startDate) $query_emp .= " AND ep.payment_date >= :start_date";
+    if ($endDate) $query_emp .= " AND ep.payment_date <= :end_date";
+    
+    $stmt_emp = $db->prepare($query_emp);
+    if ($startDate) $stmt_emp->bindParam(':start_date', $startDate);
+    if ($endDate) $stmt_emp->bindParam(':end_date', $endDate);
+    $stmt_emp->execute();
+    $emp_data = $stmt_emp->fetchAll(PDO::FETCH_ASSOC);
+
+    $fundData = array_merge($in_data, $out_data, $emp_data);
     usort($fundData, function($a, $b) {
         return strtotime($b['payment_date']) - strtotime($a['payment_date']);
     });
@@ -205,7 +229,60 @@ if ($reportType === 'fund') {
     $stmt = $db->prepare($query);
     $stmt->execute($params);
     $paymentsData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Get Employee Payments for Payments Report
+    $query_emp = "SELECT ep.*, e.name as supplier_name, 'Employee' as source
+                  FROM employee_payments ep 
+                  LEFT JOIN employees e ON ep.employee_id = e.id
+                  WHERE ep.status = 'paid'";
+    if ($startDate) $query_emp .= " AND ep.payment_date >= :start_date";
+    if ($endDate) $query_emp .= " AND ep.payment_date <= :end_date";
     
+    $stmt_emp = $db->prepare($query_emp);
+    if ($startDate) $stmt_emp->bindParam(':start_date', $startDate);
+    if ($endDate) $stmt_emp->bindParam(':end_date', $endDate);
+    $stmt_emp->execute();
+    $emp_payments = $stmt_emp->fetchAll(PDO::FETCH_ASSOC);
+    
+    foreach($emp_payments as &$ep) {
+        $ep['invoice_number'] = $ep['payment_type']; // Use type as "invoice number" placeholder
+    }
+
+    $paymentsData = array_merge($paymentsData, $emp_payments);
+    usort($paymentsData, function($a, $b) {
+        return strtotime($b['payment_date']) - strtotime($a['payment_date']);
+    });
+    
+} elseif ($reportType === 'unpaid') {
+    $query = "SELECT s.*, v.make, v.model, v.license_plate, c.name as customer_name, c.phone as customer_phone 
+              FROM services s 
+              LEFT JOIN vehicles v ON s.vehicle_id = v.id 
+              LEFT JOIN customers c ON v.customer_id = c.id
+              WHERE s.payment_status != 'paid' AND s.remaining_amount > 0";
+    
+    $params = [];
+    if ($startDate) { $query .= " AND s.date >= :start_date"; $params[':start_date'] = $startDate; }
+    if ($endDate) { $query .= " AND s.date <= :end_date"; $params[':end_date'] = $endDate; }
+    
+    $query .= " ORDER BY s.date ASC";
+    $stmt = $db->prepare($query);
+    $stmt->execute($params);
+    $unpaidData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+} elseif ($reportType === 'technicians') {
+    $query = "SELECT technician, COUNT(*) as service_count, SUM(cost) as total_value 
+              FROM services 
+              WHERE technician IS NOT NULL AND technician != ''";
+    
+    $params = [];
+    if ($startDate) { $query .= " AND date >= :start_date"; $params[':start_date'] = $startDate; }
+    if ($endDate) { $query .= " AND date <= :end_date"; $params[':end_date'] = $endDate; }
+    
+    $query .= " GROUP BY technician ORDER BY total_value DESC";
+    $stmt = $db->prepare($query);
+    $stmt->execute($params);
+    $techniciansData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 } elseif ($reportType === 'suppliers') {
     $query = "SELECT pi.*, s.name as supplier_name, s.contact_person, s.phone as supplier_phone 
               FROM purchase_invoices pi 
@@ -220,6 +297,20 @@ if ($reportType === 'fund') {
     $stmt = $db->prepare($query);
     $stmt->execute($params);
     $suppliersData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} elseif ($reportType === 'employee_statements') {
+    $query = "SELECT ep.*, e.name as employee_name, e.position as employee_position 
+              FROM employee_payments ep 
+              LEFT JOIN employees e ON ep.employee_id = e.id
+              WHERE ep.status = 'paid'";
+    
+    $params = [];
+    if ($startDate) { $query .= " AND ep.payment_date >= :start_date"; $params[':start_date'] = $startDate; }
+    if ($endDate) { $query .= " AND ep.payment_date <= :end_date"; $params[':end_date'] = $endDate; }
+    
+    $query .= " ORDER BY ep.payment_date DESC";
+    $stmt = $db->prepare($query);
+    $stmt->execute($params);
+    $employeeStatementsData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } else {
     // General / Invoices
     $query = "SELECT s.*, v.make, v.model, v.license_plate, c.name as customer_name, c.phone as customer_phone 
@@ -258,6 +349,18 @@ if ($reportType === 'fund') {
 }
 
 // دوال مساعدة
+function get_period_string($startDate, $endDate, $tr) {
+    if($startDate && $endDate) {
+        return $tr['from'] . " " . $startDate . " " . $tr['to'] . " " . $endDate;
+    } else if ($startDate) {
+         return $tr['from'] . " " . $startDate;
+    } else if ($endDate) {
+         return $tr['to'] . " " . $endDate;
+    } else {
+        return $tr['all_periods'];
+    }
+}
+
 function xml_escape($str) {
     return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
 }
@@ -378,17 +481,7 @@ echo '<?mso-application progid="Excel.Sheet"?>';
    </Row>
    <Row ss:Height="15">
     <Cell ss:MergeAcross="4" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php 
-        $periodStr = "";
-        if($startDate && $endDate) {
-            $periodStr = $tr['from'] . " " . $startDate . " " . $tr['to'] . " " . $endDate;
-        } else if ($startDate) {
-             $periodStr = $tr['from'] . " " . $startDate;
-        } else if ($endDate) {
-             $periodStr = $tr['to'] . " " . $endDate;
-        } else {
-            $periodStr = $tr['all_periods'];
-        }
-        echo $tr['report_period'] . ": " . $periodStr;
+        echo $tr['report_period'] . ": " . get_period_string($startDate, $endDate, $tr);
     ?></Data></Cell>
    </Row>
    <Row ss:Height="15">
@@ -462,7 +555,101 @@ echo '<?mso-application progid="Excel.Sheet"?>';
  </Worksheet>
  <?php }
 
- // دالة لرسم ورقة عمل (Sheet)
+ // دالة لرسم ورقة العمل للخدمات غير المدفوعة
+ function renderUnpaidWorksheet($title, $data, $tr, $isRtl, $startDate, $endDate) {
+    $totalRemaining = 0;
+    foreach ($data as $row) {
+        $totalRemaining += floatval($row['remaining_amount']);
+    }
+ ?>
+ <Worksheet ss:Name="<?php echo xml_escape($title); ?>">
+  <Table ss:ExpandedColumnCount="8" x:FullColumns="1" x:FullRows="1" ss:DefaultColumnWidth="60" ss:DefaultRowHeight="15">
+   <Column ss:Width="40"/> <!-- ID -->
+   <Column ss:Width="100"/> <!-- Date -->
+   <Column ss:Width="120"/> <!-- Customer -->
+   <Column ss:Width="150"/> <!-- Vehicle -->
+   <Column ss:Width="100"/> <!-- Cost -->
+   <Column ss:Width="100"/> <!-- Remaining -->
+   <Column ss:Width="100"/> <!-- Phone -->
+
+   <Row ss:Height="25">
+    <Cell ss:MergeAcross="6" ss:StyleID="sTitle"><Data ss:Type="String"><?php echo xml_escape($title); ?></Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:MergeAcross="6" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php 
+        echo $tr['report_period'] . ": " . get_period_string($startDate, $endDate, $tr);
+    ?></Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:MergeAcross="6" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php echo $tr['generated_on'] . ': ' . date('Y-m-d H:i'); ?></Data></Cell>
+   </Row>
+   <Row ss:Height="10"/>
+   <Row>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['id']; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['date']; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['customer']; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['vehicle']; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['cost']; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['remaining']; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['phone']; ?></Data></Cell>
+   </Row>
+   <?php foreach($data as $row): ?>
+   <Row>
+    <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo $row['id']; ?></Data></Cell>
+    <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo $row['date']; ?></Data></Cell>
+    <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['customer_name']); ?></Data></Cell>
+    <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['make'] . ' ' . $row['model']); ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['cost']); ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['remaining_amount']); ?></Data></Cell>
+    <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['customer_phone']); ?></Data></Cell>
+   </Row>
+   <?php endforeach; ?>
+   <Row>
+       <Cell ss:Index="5" ss:StyleID="sTotal"><Data ss:Type="String"><?php echo $tr['total_amount']; ?></Data></Cell>
+       <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalRemaining); ?></Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
+ <?php }
+
+ // دالة لرسم ورقة العمل للفنيين
+ function renderTechniciansWorksheet($title, $data, $tr, $isRtl, $startDate, $endDate) {
+ ?>
+ <Worksheet ss:Name="<?php echo xml_escape($title); ?>">
+  <Table ss:ExpandedColumnCount="3" x:FullColumns="1" x:FullRows="1" ss:DefaultColumnWidth="100" ss:DefaultRowHeight="15">
+   <Column ss:Width="150"/> <!-- Technician -->
+   <Column ss:Width="100"/> <!-- Services Count -->
+   <Column ss:Width="120"/> <!-- Total Value -->
+
+   <Row ss:Height="25">
+    <Cell ss:MergeAcross="2" ss:StyleID="sTitle"><Data ss:Type="String"><?php echo xml_escape($title); ?></Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:MergeAcross="2" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php 
+        echo $tr['report_period'] . ": " . get_period_string($startDate, $endDate, $tr);
+    ?></Data></Cell>
+   </Row>
+   <Row ss:Height="15">
+    <Cell ss:MergeAcross="2" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php echo $tr['generated_on'] . ': ' . date('Y-m-d H:i'); ?></Data></Cell>
+   </Row>
+   <Row ss:Height="10"/>
+   <Row>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['technician']; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $isRtl ? 'عدد الخدمات' : 'Services Count'; ?></Data></Cell>
+    <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $isRtl ? 'إجمالي المبالغ' : 'Total Revenue'; ?></Data></Cell>
+   </Row>
+   <?php foreach($data as $row): ?>
+   <Row>
+    <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['technician']); ?></Data></Cell>
+    <Cell ss:StyleID="sData"><Data ss:Type="Number"><?php echo intval($row['service_count']); ?></Data></Cell>
+    <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['total_value']); ?></Data></Cell>
+   </Row>
+   <?php endforeach; ?>
+  </Table>
+ </Worksheet>
+ <?php }
+
+ // دالة لرسم ورقة الخدمات العامة (Worksheet)
  function renderWorksheet($title, $data, $tr, $isRtl, $startDate, $endDate) {
     $totalCost = 0;
     $totalPaid = 0;
@@ -493,17 +680,7 @@ echo '<?mso-application progid="Excel.Sheet"?>';
    </Row>
    <Row ss:Height="15">
     <Cell ss:MergeAcross="11" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php 
-        $periodStr = "";
-        if($startDate && $endDate) {
-            $periodStr = $tr['from'] . " " . $startDate . " " . $tr['to'] . " " . $endDate;
-        } else if ($startDate) {
-             $periodStr = $tr['from'] . " " . $startDate;
-        } else if ($endDate) {
-             $periodStr = $tr['to'] . " " . $endDate;
-        } else {
-            $periodStr = $tr['all_periods'];
-        }
-        echo $tr['report_period'] . ": " . $periodStr;
+        echo $tr['report_period'] . ": " . get_period_string($startDate, $endDate, $tr);
     ?></Data></Cell>
    </Row>
    <Row ss:Height="15">
@@ -597,9 +774,15 @@ echo '<?mso-application progid="Excel.Sheet"?>';
     <Cell ss:MergeAcross="8" ss:StyleID="sTitle"><Data ss:Type="String"><?php echo xml_escape($title); ?></Data></Cell>
    </Row>
    <Row ss:Height="15">
+    <Cell ss:MergeAcross="8" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php 
+        echo $tr['report_period'] . ": " . get_period_string($startDate, $endDate, $tr);
+    ?></Data></Cell>
+   </Row>
+   <Row ss:Height="15">
     <Cell ss:MergeAcross="8" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php echo $tr['generated_on'] . ': ' . date('Y-m-d H:i'); ?></Data></Cell>
    </Row>
-   <Row ss:Index="4">
+   <Row ss:Height="10"/>
+   <Row>
     <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['id']; ?></Data></Cell>
     <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['date']; ?></Data></Cell>
     <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['customer']; ?></Data></Cell>
@@ -652,9 +835,15 @@ echo '<?mso-application progid="Excel.Sheet"?>';
     <Cell ss:MergeAcross="6" ss:StyleID="sTitle"><Data ss:Type="String"><?php echo xml_escape($title); ?></Data></Cell>
    </Row>
    <Row ss:Height="15">
+    <Cell ss:MergeAcross="6" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php 
+        echo $tr['report_period'] . ": " . get_period_string($startDate, $endDate, $tr);
+    ?></Data></Cell>
+   </Row>
+   <Row ss:Height="15">
     <Cell ss:MergeAcross="6" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php echo $tr['generated_on'] . ': ' . date('Y-m-d H:i'); ?></Data></Cell>
    </Row>
-   <Row ss:Index="4">
+   <Row ss:Height="10"/>
+   <Row>
     <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['id']; ?></Data></Cell>
     <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['date']; ?></Data></Cell>
     <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['supplier']; ?></Data></Cell>
@@ -716,17 +905,7 @@ echo '<?mso-application progid="Excel.Sheet"?>';
    </Row>
    <Row ss:Height="15">
     <Cell ss:MergeAcross="9" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php 
-        $periodStr = "";
-        if($startDate && $endDate) {
-            $periodStr = $tr['from'] . " " . $startDate . " " . $tr['to'] . " " . $endDate;
-        } else if ($startDate) {
-             $periodStr = $tr['from'] . " " . $startDate;
-        } else if ($endDate) {
-             $periodStr = $tr['to'] . " " . $endDate;
-        } else {
-            $periodStr = $tr['all_periods'];
-        }
-        echo $tr['report_period'] . ": " . $periodStr;
+        echo $tr['report_period'] . ": " . get_period_string($startDate, $endDate, $tr);
     ?></Data></Cell>
    </Row>
    <Row ss:Height="15">
@@ -794,9 +973,15 @@ echo '<?mso-application progid="Excel.Sheet"?>';
     <Cell ss:MergeAcross="5" ss:StyleID="sTitle"><Data ss:Type="String"><?php echo xml_escape($title); ?></Data></Cell>
    </Row>
    <Row ss:Height="15">
+    <Cell ss:MergeAcross="5" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php 
+        echo $tr['report_period'] . ": " . get_period_string($startDate, $endDate, $tr);
+    ?></Data></Cell>
+   </Row>
+   <Row ss:Height="15">
     <Cell ss:MergeAcross="5" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php echo $tr['generated_on'] . ': ' . date('Y-m-d H:i'); ?></Data></Cell>
    </Row>
-   <Row ss:Index="4">
+   <Row ss:Height="10"/>
+   <Row>
     <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['date']; ?></Data></Cell>
     <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $isRtl ? 'الجهة' : 'Entity'; ?></Data></Cell>
     <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['type']; ?></Data></Cell>
@@ -823,19 +1008,80 @@ echo '<?mso-application progid="Excel.Sheet"?>';
        <Cell ss:Index="3" ss:StyleID="sTotal"><Data ss:Type="String"><?php echo $isRtl ? 'الرصيد الحالي' : 'Current Balance'; ?></Data></Cell>
        <Cell ss:MergeAcross="1" ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalIn - $totalOut); ?></Data></Cell>
    </Row>
-  </Table>
- </Worksheet>
- <?php }
-
- // إنشاء الصفحات بناءً على النوع
- if ($reportType === 'receipts') {
-     renderReceiptsWorksheet($tr['receipts_report'], $receiptsData, $tr, $isRtl, $startDate, $endDate);
- } elseif ($reportType === 'payments') {
-     renderPaymentsWorksheet($tr['payments_report'], $paymentsData, $tr, $isRtl, $startDate, $endDate);
- } elseif ($reportType === 'suppliers') {
-     renderSuppliersWorksheet($tr['suppliers_report'], $suppliersData, $tr, $isRtl, $startDate, $endDate);
- } elseif ($reportType === 'fund') {
-     renderFundWorksheet($isRtl ? 'تقرير الصندوق' : 'Fund Report', $fundData, $tr, $isRtl, $startDate, $endDate);
+      </Table>
+   </Worksheet>
+   <?php }
+  
+   // دالة لرسم ورقة كشوفات الموظفين (Employee Statements)
+   function renderEmployeeStatementsWorksheet($title, $data, $tr, $isRtl, $startDate, $endDate) {
+      $totalAmount = 0;
+      foreach ($data as $row) {
+          $totalAmount += floatval($row['amount']);
+      }
+   ?>
+   <Worksheet ss:Name="<?php echo xml_escape($title); ?>">
+    <Table ss:ExpandedColumnCount="7" x:FullColumns="1" x:FullRows="1" ss:DefaultColumnWidth="60" ss:DefaultRowHeight="15">
+     <Column ss:Width="100"/> <!-- Date -->
+     <Column ss:Width="150"/> <!-- Employee -->
+     <Column ss:Width="120"/> <!-- Position -->
+     <Column ss:Width="100"/> <!-- Type -->
+     <Column ss:Width="80"/> <!-- Amount -->
+     <Column ss:Width="200"/> <!-- Notes -->
+  
+     <Row ss:Height="25">
+      <Cell ss:MergeAcross="5" ss:StyleID="sTitle"><Data ss:Type="String"><?php echo xml_escape($title); ?></Data></Cell>
+     </Row>
+     <Row ss:Height="15">
+      <Cell ss:MergeAcross="5" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php 
+          echo $tr['report_period'] . ": " . get_period_string($startDate, $endDate, $tr);
+      ?></Data></Cell>
+     </Row>
+     <Row ss:Height="15">
+      <Cell ss:MergeAcross="5" ss:StyleID="sSubtitle"><Data ss:Type="String"><?php echo $tr['generated_on'] . ': ' . date('Y-m-d H:i'); ?></Data></Cell>
+     </Row>
+     <Row ss:Height="10"/>
+     <Row>
+      <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['date']; ?></Data></Cell>
+      <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['employee']; ?></Data></Cell>
+      <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['position']; ?></Data></Cell>
+      <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['type']; ?></Data></Cell>
+      <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['amount']; ?></Data></Cell>
+      <Cell ss:StyleID="sHeader"><Data ss:Type="String"><?php echo $tr['description']; ?></Data></Cell>
+     </Row>
+     <?php foreach($data as $row): ?>
+     <Row>
+      <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo $row['payment_date']; ?></Data></Cell>
+      <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['employee_name']); ?></Data></Cell>
+      <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['employee_position']); ?></Data></Cell>
+      <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['payment_type']); ?></Data></Cell>
+      <Cell ss:StyleID="sCurrency"><Data ss:Type="Number"><?php echo floatval($row['amount']); ?></Data></Cell>
+      <Cell ss:StyleID="sData"><Data ss:Type="String"><?php echo xml_escape($row['notes']); ?></Data></Cell>
+     </Row>
+     <?php endforeach; ?>
+     <Row>
+         <Cell ss:Index="4" ss:StyleID="sTotal"><Data ss:Type="String"><?php echo $tr['total_amount']; ?></Data></Cell>
+         <Cell ss:StyleID="sTotal"><Data ss:Type="Number"><?php echo floatval($totalAmount); ?></Data></Cell>
+     </Row>
+    </Table>
+   </Worksheet>
+   <?php }
+  
+   // إنشاء الصفحات بناءً على النوع
+   if ($reportType === 'receipts') {
+       renderReceiptsWorksheet($tr['receipts_report'], $receiptsData, $tr, $isRtl, $startDate, $endDate);
+   } elseif ($reportType === 'payments') {
+       renderPaymentsWorksheet($tr['payments_report'], $paymentsData, $tr, $isRtl, $startDate, $endDate);
+   } elseif ($reportType === 'suppliers') {
+       renderSuppliersWorksheet($tr['suppliers_report'], $suppliersData, $tr, $isRtl, $startDate, $endDate);
+   } elseif ($reportType === 'employee_statements') {
+       renderEmployeeStatementsWorksheet($tr['employee_statements'], $employeeStatementsData, $tr, $isRtl, $startDate, $endDate);
+   } elseif ($reportType === 'fund') {
+       renderFundWorksheet($isRtl ? 'تقرير الصندوق' : 'Fund Report', $fundData, $tr, $isRtl, $startDate, $endDate);
+  
+ } elseif ($reportType === 'unpaid') {
+     renderUnpaidWorksheet($isRtl ? 'الخدمات غير المدفوعة' : 'Unpaid Services', $unpaidData, $tr, $isRtl, $startDate, $endDate);
+ } elseif ($reportType === 'technicians') {
+     renderTechniciansWorksheet($isRtl ? 'إنتاجية الفنيين' : 'Technicians Productivity', $techniciansData, $tr, $isRtl, $startDate, $endDate);
  } elseif ($reportType === 'invoices') {
      renderWorksheet($tr['invoices_report'], $allServices, $tr, $isRtl, $startDate, $endDate);
  } else {

@@ -1,8 +1,17 @@
 <?php
-header("Access-Control-Allow-Origin: *");
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+    header("Access-Control-Max-Age: 86400");
+} else {
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+}
+
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { http_response_code(200); exit(); }
 
@@ -13,8 +22,14 @@ $db = $database->getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method == 'GET') {
-    $query = "SELECT * FROM purchase_payments ORDER BY created_at DESC";
-    $stmt = $db->prepare($query);
+    if (isset($_GET['invoice_id'])) {
+        $query = "SELECT * FROM purchase_payments WHERE invoice_id = :invoice_id ORDER BY created_at DESC";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":invoice_id", $_GET['invoice_id']);
+    } else {
+        $query = "SELECT * FROM purchase_payments ORDER BY created_at DESC";
+        $stmt = $db->prepare($query);
+    }
     $stmt->execute();
     echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
 }

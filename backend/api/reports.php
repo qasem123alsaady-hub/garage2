@@ -1,8 +1,17 @@
 <?php
-header("Access-Control-Allow-Origin: *");
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Allow-Methods: POST, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+    header("Access-Control-Max-Age: 86400");
+} else {
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: POST, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+}
+
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
@@ -57,6 +66,29 @@ try {
                       LEFT JOIN services s ON v.id = s.vehicle_id 
                       GROUP BY v.id 
                       ORDER BY v.created_at DESC";
+            $stmt = $db->prepare($query);
+            $stmt->execute();
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            break;
+
+        case 'technicians':
+            $query = "SELECT technician, COUNT(*) as service_count, SUM(cost) as total_value 
+                      FROM services 
+                      WHERE technician IS NOT NULL AND technician != ''
+                      GROUP BY technician 
+                      ORDER BY total_value DESC";
+            $stmt = $db->prepare($query);
+            $stmt->execute();
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            break;
+
+        case 'unpaid':
+            $query = "SELECT s.*, v.make, v.model, v.license_plate, c.name as customer_name, c.phone as customer_phone 
+                      FROM services s 
+                      JOIN vehicles v ON s.vehicle_id = v.id 
+                      JOIN customers c ON v.customer_id = c.id 
+                      WHERE s.payment_status != 'paid' 
+                      ORDER BY s.date ASC";
             $stmt = $db->prepare($query);
             $stmt->execute();
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);

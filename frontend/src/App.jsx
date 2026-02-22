@@ -3,6 +3,8 @@ import { translations } from './utils/translations';
 import { userPermissions } from './utils/permissions';
 import PrintHeader from './components/common/PrintHeader';
 import PrintInvoice from './components/common/PrintInvoice';
+import PrintEmployeeReceipt from './components/common/PrintEmployeeReceipt';
+import PrintEmployeeStatement from './components/common/PrintEmployeeStatement';
 import useAuth from './hooks/useAuth';
 import apiService from './services/api';
 
@@ -15,6 +17,7 @@ import CustomerManagement from './components/financial/CustomerManagement';
 import VehicleManagement from './components/financial/VehicleManagement';
 import ServiceManagement from './components/financial/ServiceManagement';
 import AccountManagement from './components/common/AccountManagement';
+import ServiceTypeManagement from './components/common/ServiceTypeManagement';
 
 // استيراد المودال للاختصارات
 import CustomerModal from './components/modals/CustomerModal';
@@ -167,11 +170,13 @@ const App = () => {
       case 'suppliers':
         return <SupplierManagement t={t} isRtl={isRtl} />;
       case 'employees':
-        return <EmployeeManagement t={t} isRtl={isRtl} />;
+        return <EmployeeManagement t={t} isRtl={isRtl} setPrintData={setPrintData} />;
       case 'accounts':
         return <AccountManagement t={t} isRtl={isRtl} />;
+      case 'service_types':
+        return <ServiceTypeManagement t={t} isRtl={isRtl} />;
       case 'purchase_invoices':
-        return <PurchaseInvoices t={t} isRtl={isRtl} setPrintData={setPrintData} />;
+        return <PurchaseInvoices t={t} isRtl={isRtl} setPrintData={setPrintData} permissions={permissions} />;
       case 'reports':
         return <FinancialReports t={t} isRtl={isRtl} />;
       case 'dashboard':
@@ -287,6 +292,7 @@ const App = () => {
               onSuccess={() => { fetchStats(); setShowVehicleModal(false); }}
               customers={sharedData.customers}
               t={t}
+              isRtl={isRtl}
             />
             <ServiceModal 
               isOpen={showServiceModal}
@@ -295,6 +301,7 @@ const App = () => {
               vehicles={sharedData.vehicles}
               customers={sharedData.customers}
               t={t}
+              isRtl={isRtl}
             />
           </div>
         );
@@ -400,6 +407,14 @@ const App = () => {
                     >
                         🛡️ {t.adminAccounts}
                     </button>
+
+                    
+                    <button 
+                        onClick={() => setCurrentView('service_types')}
+                        className={`w-full text-start px-4 py-2 rounded ${currentView === 'service_types' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-600 hover:bg-gray-50'}`}
+                    >
+                        🔧 {t.editServices}
+                    </button>
                   </>
                 )}
             </div>
@@ -414,12 +429,24 @@ const App = () => {
       {/* مكون الطباعة المخفي */}
       <div className="hidden print:block">
         {printData ? (
-          <PrintInvoice 
-            t={t} 
-            service={printData.service} 
-            vehicle={printData.vehicle} 
-            customer={printData.customer} 
-          />
+          printData.type === 'employee_payment' ? (
+            <PrintEmployeeReceipt 
+              t={t} 
+              payment={printData.data} 
+            />
+          ) : printData.type === 'employee_statement' ? (
+            <PrintEmployeeStatement 
+              t={t} 
+              data={printData.data} 
+            />
+          ) : (
+            <PrintInvoice 
+              t={t} 
+              service={printData.service} 
+              vehicle={printData.vehicle} 
+              customer={printData.customer} 
+            />
+          )
         ) : (
           <PrintHeader t={t} />
         )}

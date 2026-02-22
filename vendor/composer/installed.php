@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => '__root__',
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
-        'reference' => null,
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => 'c220e0ee9d383c1ebc9524fdfbe0780a5abf5106',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         '__root__' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
-            'reference' => null,
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'c220e0ee9d383c1ebc9524fdfbe0780a5abf5106',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
@@ -74,8 +74,8 @@
             'dev_requirement' => false,
         ),
         'illuminate/collections' => array(
-            'pretty_version' => 'v12.38.1',
-            'version' => '12.38.1.0',
+            'pretty_version' => 'v12.39.0',
+            'version' => '12.39.0.0',
             'reference' => 'deb291b109b6f7fd776a3550a120771137b3c5d1',
             'type' => 'library',
             'install_path' => __DIR__ . '/../illuminate/collections',
@@ -83,8 +83,8 @@
             'dev_requirement' => false,
         ),
         'illuminate/conditionable' => array(
-            'pretty_version' => 'v12.38.1',
-            'version' => '12.38.1.0',
+            'pretty_version' => 'v12.39.0',
+            'version' => '12.39.0.0',
             'reference' => 'ec677967c1f2faf90b8428919124d2184a4c9b49',
             'type' => 'library',
             'install_path' => __DIR__ . '/../illuminate/conditionable',
@@ -92,8 +92,8 @@
             'dev_requirement' => false,
         ),
         'illuminate/contracts' => array(
-            'pretty_version' => 'v12.38.1',
-            'version' => '12.38.1.0',
+            'pretty_version' => 'v12.39.0',
+            'version' => '12.39.0.0',
             'reference' => '5ab717c8f0dd4e84be703796bbb415ccff8de57a',
             'type' => 'library',
             'install_path' => __DIR__ . '/../illuminate/contracts',
@@ -101,8 +101,8 @@
             'dev_requirement' => false,
         ),
         'illuminate/macroable' => array(
-            'pretty_version' => 'v12.38.1',
-            'version' => '12.38.1.0',
+            'pretty_version' => 'v12.39.0',
+            'version' => '12.39.0.0',
             'reference' => 'e862e5648ee34004fa56046b746f490dfa86c613',
             'type' => 'library',
             'install_path' => __DIR__ . '/../illuminate/macroable',
@@ -110,9 +110,9 @@
             'dev_requirement' => false,
         ),
         'illuminate/support' => array(
-            'pretty_version' => 'v12.38.1',
-            'version' => '12.38.1.0',
-            'reference' => '008b6c0d45f548de0f801d60a5854a7f9e4dd32f',
+            'pretty_version' => 'v12.39.0',
+            'version' => '12.39.0.0',
+            'reference' => 'd9780f626aa79d6b7b9c18f0d886340a29c66659',
             'type' => 'library',
             'install_path' => __DIR__ . '/../illuminate/support',
             'aliases' => array(),

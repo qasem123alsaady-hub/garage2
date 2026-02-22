@@ -1,30 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import apiService from '../../services/api';
 
-const PurchasePaymentModal = ({ isOpen, onClose, onSuccess, invoice, suppliers, t, isRtl, payment = null }) => {
+const PurchasePaymentModal = ({ isOpen, onClose, onSuccess, invoice, suppliers, t, isRtl, initialPayment = null }) => {
+  const [payments, setPayments] = useState([]);
+  const [selectedPayment, setSelectedPayment] = useState(initialPayment);
   const [amount, setAmount] = useState(0);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (payment) {
-      setAmount(payment.amount);
-      setNotes(payment.notes || '');
+    if (isOpen && invoice) {
+      fetchPayments();
+      setSelectedPayment(initialPayment);
+    }
+  }, [isOpen, invoice, initialPayment]);
+
+  useEffect(() => {
+    if (selectedPayment) {
+      setAmount(selectedPayment.amount);
+      setNotes(selectedPayment.notes || '');
     } else if (invoice) {
       setAmount((parseFloat(invoice.amount) - parseFloat(invoice.paid_amount || 0)).toFixed(2));
       setNotes('');
     }
-  }, [payment, invoice, isOpen]);
+  }, [selectedPayment, invoice, isOpen]);
+
+  const fetchPayments = async () => {
+    try {
+      const data = await apiService.purchasePayments.getByInvoiceId(invoice.id);
+      setPayments(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+    }
+  };
 
   if (!isOpen || !invoice) return null;
 
   const supplier = suppliers.find(s => s.id == invoice.supplier_id);
-  const remaining = payment 
-    ? (parseFloat(invoice.amount) - (parseFloat(invoice.paid_amount || 0) - parseFloat(payment.amount))).toFixed(2)
-    : (parseFloat(invoice.amount) - parseFloat(invoice.paid_amount || 0)).toFixed(2);
+  const totalPaidExcludingSelected = payments
+    .filter(p => !selectedPayment || p.id !== selectedPayment.id)
+    .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+  
+  const remaining = (parseFloat(invoice.amount) - totalPaidExcludingSelected).toFixed(2);
 
   const handlePrintReceipt = (paymentData) => {
     const language = isRtl ? 'ar' : 'en';
+    const paymentDate = paymentData.payment_date || new Date().toISOString().split('T')[0];
     
     const receiptContent = `
       <!DOCTYPE html>
@@ -139,7 +160,7 @@ const PurchasePaymentModal = ({ isOpen, onClose, onSuccess, invoice, suppliers, 
                   </div>
                   <div class="meta-item" style="text-align: ${language === 'ar' ? 'left' : 'right'}">
                       <span class="meta-label">${t.date}</span>
-                      <span class="meta-value">${payment?.payment_date || new Date().toLocaleDateString()}</span>
+                      <span class="meta-value">${paymentDate}</span>
                   </div>
               </div>
               
@@ -158,19 +179,19 @@ const PurchasePaymentModal = ({ isOpen, onClose, onSuccess, invoice, suppliers, 
                   </div>
                   <div class="detail-row">
                       <span class="detail-label">${t.remaining}</span>
-                      <span class="detail-value">$${parseFloat(remaining).toFixed(2)}</span>
+                      <span class="detail-value">$${parseFloat(remaining - amount).toFixed(2)}</span>
                   </div>
-                  ${notes ? `
+                  ${paymentData.notes ? `
                   <div class="detail-row">
                       <span class="detail-label">${t.notes}</span>
-                      <span class="detail-value">${notes}</span>
+                      <span class="detail-value">${paymentData.notes}</span>
                   </div>
                   ` : ''}
               </div>
               
               <div class="amount-box">
                   <div class="amount-label">${language === 'ar' ? 'المبلغ المصروف' : 'Amount Paid'}</div>
-                  <div class="amount-value">$${parseFloat(amount).toFixed(2)}</div>
+                  <div class="amount-value">$${parseFloat(paymentData.amount).toFixed(2)}</div>
                   <div class="payment-method">
                       ${language === 'ar' ? 'نقداً / شيك' : 'Cash / Check'}
                   </div>
@@ -210,29 +231,29 @@ const PurchasePaymentModal = ({ isOpen, onClose, onSuccess, invoice, suppliers, 
 
     setLoading(true);
     try {
+      let result;
       const payload = {
         amount: parseFloat(amount),
         notes: notes,
-        payment_date: payment?.payment_date || new Date().toISOString().split('T')[0]
+        payment_date: selectedPayment?.payment_date || new Date().toISOString().split('T')[0]
       };
 
-      if (payment) {
-        payload.id = payment.id;
+      if (selectedPayment) {
+        payload.id = selectedPayment.id;
+        result = await apiService.purchasePayments.update(payload);
       } else {
         payload.invoice_id = invoice.id;
+        result = await apiService.purchasePayments.create(payload);
       }
 
-      const response = await fetch('http://localhost/car-garage/backend/api/purchase_payments.php', {
-        method: payment ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const result = await response.json();
       if (result.success) {
-        if (!payment && window.confirm(t.savedDoYouWantToPrintReceipt)) {
-          handlePrintReceipt(result);
+        if (!selectedPayment && window.confirm(t.savedDoYouWantToPrintReceipt)) {
+          handlePrintReceipt({...payload, receipt_number: result.receipt_number});
         }
+        fetchPayments();
+        setSelectedPayment(null);
         onSuccess();
+        if (!selectedPayment) onClose();
       } else {
         alert(result.message);
       }
@@ -244,65 +265,133 @@ const PurchasePaymentModal = ({ isOpen, onClose, onSuccess, invoice, suppliers, 
     }
   };
 
+  const handleDeletePayment = async (id) => {
+    if (!window.confirm(t.confirmDelete || (isRtl ? 'هل أنت متأكد من حذف هذه الدفعة؟' : 'Are you sure you want to delete this payment?'))) return;
+
+    try {
+      const result = await apiService.purchasePayments.delete(id);
+      if (result.success) {
+        fetchPayments();
+        onSuccess();
+        alert(isRtl ? '✅ تم حذف الدفعة بنجاح' : '✅ Payment deleted successfully');
+      } else {
+        alert(`❌ ${t.error}: ` + result.message);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(t.connectionError);
+    }
+  };
+
   return (
     <div className="modal-overlay">
-      <div className="modal">
-        <div className="modal-header" style={{background: '#10b981', color: 'white'}}>
-          <h3 className="modal-title" style={{color: 'white'}}>{payment ? (isRtl ? 'تعديل الإيصال' : 'Edit Receipt') : t.payInvoice}</h3>
-          <button onClick={onClose} className="modal-close" style={{background: 'rgba(255,255,255,0.2)', color: 'white'}}>✕</button>
+      <div className="modal" style={{maxWidth: '800px', width: '95%'}}>
+        <div className="modal-header">
+          <h3 className="modal-title">{selectedPayment ? (isRtl ? 'تعديل الدفعة' : 'Edit Payment') : t.payInvoice}</h3>
+          <button onClick={onClose} className="modal-close">✕</button>
         </div>
-        <div className="modal-body">
-          <form onSubmit={handleSubmit}>
-            <div className="card" style={{padding: '20px', background: '#f8fafc', marginBottom: '24px', border: '1px solid #e2e8f0'}}>
-               <div className="text-xs text-gray-500 uppercase font-bold mb-1">{t.invoiceNumber}</div>
-               <div className="font-bold text-xl text-gray-800">#{invoice.invoice_number}</div>
-               <div className="flex justify-between mt-4 p-3 bg-red-50 rounded-lg border border-red-100">
-                  <span className="text-red-700 font-medium">{t.remaining}:</span>
-                  <span className="font-extrabold text-red-600 text-lg">${remaining}</span>
+        <div className="modal-body flex flex-col md:flex-row gap-6">
+          <div className="flex-1">
+            <div className="card" style={{padding: '20px', background: '#f0fdf4', borderRadius: '16px', marginBottom: '24px', border: '1px solid #bbf7d0'}}>
+               <div className="flex justify-between mb-2">
+                  <span className="text-emerald-600 font-medium">{t.invoiceNumber}:</span>
+                  <span className="font-bold text-emerald-900">#{invoice.invoice_number}</span>
+               </div>
+               <div className="flex justify-between border-t border-emerald-100 pt-3 mt-3">
+                  <span className="text-emerald-800 font-extrabold">{t.remaining}:</span>
+                  <span className="text-emerald-800 font-black text-2xl">${remaining}</span>
                </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label font-bold text-gray-700">{t.amountToPay}</label>
-              <input 
-                type="number" 
-                step="0.01"
-                max={remaining}
-                required
-                className="form-input font-bold text-xl text-emerald-600"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="form-group">
+                <label className="form-label font-bold text-gray-700">{t.amountToPay} ($)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  max={remaining}
+                  required
+                  className="form-input font-bold text-xl text-emerald-600"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">{t.notes}</label>
-              <textarea 
-                className="form-textarea"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows="3"
-                placeholder={t.notesPlaceholder}
-              />
-            </div>
+              <div className="form-group">
+                <label className="form-label">{t.notes}</label>
+                <textarea 
+                  className="form-textarea"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows="3"
+                  placeholder={t.notesPlaceholder}
+                />
+              </div>
 
-            <div className="form-actions" style={{padding: 0, background: 'none', border: 'none', marginTop: '24px'}}>
-              <button 
-                type="button" 
-                onClick={onClose}
-                className="btn btn-outline flex-1 py-4"
-              >
-                {t.cancel}
-              </button>
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="btn btn-success flex-1 py-4"
-              >
-                {loading ? '...' : t.confirmPayInvoice}
-              </button>
+              <div className="form-actions" style={{padding: 0, background: 'none', border: 'none', marginTop: '24px'}}>
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="btn btn-success flex-1 py-4"
+                >
+                  {loading ? '...' : (selectedPayment ? t.save : `💳 ${t.confirmPayInvoice}`)}
+                </button>
+                {selectedPayment && (
+                  <button type="button" className="btn btn-outline flex-1 py-4" onClick={() => setSelectedPayment(null)}>{t.cancel}</button>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="flex-1 border-t md:border-t-0 md:border-r pr-0 md:pr-8 pt-6 md:pt-0">
+            <h4 className="font-bold text-xl mb-6 text-gray-800">{isRtl ? 'سجل دفعات الفاتورة' : 'Invoice Payment History'}</h4>
+            <div className="max-h-[400px] overflow-y-auto">
+              {payments.length > 0 ? (
+                <table className="min-w-full divide-y divide-gray-100">
+                  <thead>
+                    <tr>
+                      <th className="text-start py-3 text-xs font-bold text-gray-500 uppercase">{t.date}</th>
+                      <th className="text-start py-3 text-xs font-bold text-gray-500 uppercase">{t.amount}</th>
+                      <th className="text-start py-3 text-xs font-bold text-gray-500 uppercase">{t.actions}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {payments.map(p => (
+                      <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="py-4 text-sm text-gray-600">{p.payment_date}</td>
+                        <td className="py-4 text-sm font-bold text-emerald-600">${p.amount}</td>
+                        <td className="py-4 text-sm">
+                          <div className="flex gap-2">
+                            <button onClick={() => setSelectedPayment(p)} className="action-btn edit" title={t.edit}>✏️</button>
+                            <button 
+                              onClick={() => handleDeletePayment(p.id)} 
+                              className="action-btn delete" 
+                              title={t.delete}
+                            >
+                              🗑️
+                            </button>
+                            <button 
+                              onClick={() => handlePrintReceipt(p)} 
+                              className="action-btn"
+                              style={{backgroundColor: '#f1f5f9', color: '#475569'}}
+                              title={t.print}
+                            >
+                              🖨️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="empty-state" style={{padding: '40px 20px'}}>
+                  <div className="empty-icon" style={{fontSize: '32px'}}>💰</div>
+                  <div className="empty-title" style={{fontSize: '16px'}}>{t.noPayments || 'لا توجد دفعات مسجلة'}</div>
+                </div>
+              )}
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>

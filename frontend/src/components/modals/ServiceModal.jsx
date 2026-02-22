@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiService from '../../services/api';
 
-function ServiceModal({ isOpen, onClose, onSuccess, vehicles, customers, t, service = null, permissions }) {
+function ServiceModal({ isOpen, onClose, onSuccess, vehicles, customers, t, service = null, permissions, isRtl }) {
   const initialItem = {
     type: '',
     description: '',
@@ -19,6 +19,31 @@ function ServiceModal({ isOpen, onClose, onSuccess, vehicles, customers, t, serv
 
   const [formData, setFormData] = useState(initialState);
   const [loading, setLoading] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [serviceTypes, setServiceTypes] = useState([]);
+
+  useEffect(() => {
+    fetchEmployees();
+    fetchServiceTypes();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const data = await apiService.employees.getAll();
+      setEmployees(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+    }
+  };
+
+  const fetchServiceTypes = async () => {
+    try {
+      const data = await apiService.serviceTypes.getAll();
+      setServiceTypes(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching service types:", error);
+    }
+  };
 
   useEffect(() => {
     if (service) {
@@ -160,7 +185,12 @@ function ServiceModal({ isOpen, onClose, onSuccess, vehicles, customers, t, serv
                 </div>
                 <div className="form-group">
                 <label className="form-label">{t.technician} *</label>
-                <input type="text" required className="form-input" value={formData.technician} onChange={(e) => setFormData({...formData, technician: e.target.value})} placeholder={t.technicianPlaceholder} />
+                <select required className="form-input" value={formData.technician} onChange={(e) => setFormData({...formData, technician: e.target.value})}>
+                    <option value="">{t.selectTechnician || 'اختر الفني'}</option>
+                    {employees.map(emp => (
+                        <option key={emp.id} value={emp.name}>{emp.name}</option>
+                    ))}
+                </select>
                 </div>
                 <div className="form-group">
                 <label className="form-label">{t.date} *</label>
@@ -209,10 +239,9 @@ function ServiceModal({ isOpen, onClose, onSuccess, vehicles, customers, t, serv
                                     <label className="form-label">{t.serviceType} *</label>
                                     <select required className="form-select" value={item.type} onChange={(e) => updateItem(index, 'type', e.target.value)}>
                                         <option value="">{t.selectServiceType}</option>
-                                        <option value="oil_change">{t.oilChange}</option>
-                                        <option value="brake_service">{t.brakeService}</option>
-                                        <option value="tire_rotation">{t.tireRotation}</option>
-                                        <option value="engine_repair">{t.engineRepair}</option>
+                                        {serviceTypes.map(st => (
+                                            <option key={st.id} value={st.name_en}>{isRtl ? st.name_ar : st.name_en}</option>
+                                        ))}
                                         <option value="other">{t.other}</option>
                                     </select>
                                 </div>

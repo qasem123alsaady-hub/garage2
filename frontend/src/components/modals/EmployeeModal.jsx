@@ -7,6 +7,7 @@ function EmployeeModal({ isOpen, onClose, onSuccess, t, employee = null }) {
     position: '',
     phone: '',
     salary: 0,
+    hire_date: new Date().toISOString().split('T')[0],
     status: 'active'
   };
 
@@ -21,6 +22,7 @@ function EmployeeModal({ isOpen, onClose, onSuccess, t, employee = null }) {
         position: employee.position,
         phone: employee.phone,
         salary: employee.salary,
+        hire_date: employee.hire_date || '',
         status: employee.status
       });
     } else {
@@ -104,6 +106,16 @@ function EmployeeModal({ isOpen, onClose, onSuccess, t, employee = null }) {
                 className="form-input"
                 value={formData.salary}
                 onChange={(e) => setFormData({...formData, salary: parseFloat(e.target.value) || 0})}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">{t.hireDate} *</label>
+              <input
+                type="date"
+                required
+                className="form-input"
+                value={formData.hire_date}
+                onChange={(e) => setFormData({...formData, hire_date: e.target.value})}
               />
             </div>
             <div className="form-group">

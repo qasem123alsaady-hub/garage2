@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import apiService from '../../services/api';
+import ReportDateRangeModal from '../modals/ReportDateRangeModal';
 
 const SupplierManagement = ({ t, isRtl }) => {
   const [suppliers, setSuppliers] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [formData, setFormData] = useState({ name: '', phone: '', contact_person: '' });
 
@@ -63,10 +65,24 @@ const SupplierManagement = ({ t, isRtl }) => {
     setShowAddModal(true);
   };
 
-  const handlePrintSupplierStatement = (supplier) => {
+  const handlePrintReport = (supplier) => {
+    setSelectedSupplier(supplier);
+    setShowReportModal(true);
+  };
+
+  const handlePrintSupplierStatement = (supplier, dateRange) => {
     if (!supplier) return;
 
-    const supplierInvoices = invoices.filter(inv => inv.supplier_id == supplier.id);
+    const supplierInvoices = invoices.filter(inv => {
+      if (inv.supplier_id != supplier.id) return false;
+      
+      const invoiceDate = new Date(inv.invoice_date || inv.date);
+      const startDate = dateRange?.start_date ? new Date(dateRange.start_date) : null;
+      const endDate = dateRange?.end_date ? new Date(dateRange.end_date) : null;
+      
+      return (!startDate || invoiceDate >= startDate) && (!endDate || invoiceDate <= endDate);
+    });
+
     const totalAmount = supplierInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0);
     const totalPaid = supplierInvoices.reduce((sum, inv) => sum + parseFloat(inv.paid_amount || 0), 0);
     const totalRemaining = totalAmount - totalPaid;
@@ -92,8 +108,10 @@ const SupplierManagement = ({ t, isRtl }) => {
       </head>
       <body>
           <div class="header">
+              <img src="${t.logo}" alt="Logo" style="height: 100px; margin-bottom: 10px;" onerror="this.style.display='none';">
               <h2>${isRtl ? 'كشف حساب مورد' : 'Supplier Statement'}</h2>
               <h3>${supplier.name}</h3>
+              <p>${t.from}: ${dateRange?.start_date || '-'} ${t.to}: ${dateRange?.end_date || '-'}</p>
               <p>${isRtl ? 'تاريخ التقرير' : 'Report Date'}: ${new Date().toLocaleDateString()}</p>
           </div>
           
@@ -124,7 +142,7 @@ const SupplierManagement = ({ t, isRtl }) => {
                           <td>$${(parseFloat(inv.amount) - parseFloat(inv.paid_amount || 0)).toFixed(2)}</td>
                           <td>${inv.status === 'paid' ? (isRtl ? 'مدفوع' : 'Paid') : inv.status === 'partial' ? (isRtl ? 'جزئي' : 'Partial') : (isRtl ? 'معلق' : 'Pending')}</td>
                       </tr>
-                  `).join('') : `<tr><td colspan="6" style="text-align: center;">${isRtl ? 'لا توجد فواتير' : 'No invoices'}</td></tr>`}
+                  `).join('') : `<tr><td colspan="6" style="text-align: center;">${isRtl ? 'لا توجد فواتير في هذه الفترة' : 'No invoices in this period'}</td></tr>`}
               </tbody>
           </table>
 
@@ -145,7 +163,7 @@ const SupplierManagement = ({ t, isRtl }) => {
               </div>
           </div>
 
-          <script>window.print();</script>
+          <script>window.onload = function() { window.print(); }</script>
       </body>
       </html>
     `;
@@ -221,74 +239,87 @@ const SupplierManagement = ({ t, isRtl }) => {
                   <div className="flex items-center gap-2">
                     <button className="action-btn edit" title={t.edit} onClick={() => handleEdit(supplier)}>✏️</button>
                     <button className="action-btn delete" title={t.delete} onClick={() => handleDelete(supplier.id)}>🗑️</button>
-                    <button 
-                      onClick={() => handlePrintSupplierStatement(supplier)} 
-                      className="action-btn" 
-                      style={{backgroundColor: '#f1f5f9', color: '#475569'}}
-                      title={t.printReport || 'Print'}
-                    >
-                      🖨️
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* نافذة الإضافة (Modal) */}
-      {showAddModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3 className="modal-title">{selectedSupplier ? t.edit : t.addSupplier}</h3>
-              <button onClick={() => setShowAddModal(false)} className="modal-close">✕</button>
-            </div>
-            <div className="modal-body">
-              <form onSubmit={handleSubmit}>
-                <div className="form-group">
-                  <label className="form-label">{t.name}</label>
-                  <input 
-                    type="text" 
-                    placeholder={t.name} 
-                    className="form-input"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">{t.contactPerson}</label>
-                  <input 
-                    type="text" 
-                    placeholder={t.contactPerson} 
-                    className="form-input"
-                    value={formData.contact_person}
-                    onChange={(e) => setFormData({...formData, contact_person: e.target.value})}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">{t.phone}</label>
-                  <input 
-                    type="text" 
-                    placeholder={t.phone} 
-                    className="form-input"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  />
-                </div>
-                <div className="form-actions">
-                  <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-outline">{t.cancel}</button>
-                  <button type="submit" className="btn btn-primary">{t.save}</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default SupplierManagement;
+                                        <button 
+                                          onClick={() => handlePrintReport(supplier)} 
+                                          className="action-btn" 
+                                          style={{backgroundColor: '#f1f5f9', color: '#475569'}}
+                                          title={t.printReport || 'Print'}
+                                        >
+                                          🖨️
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                    
+                          {/* نافذة الإضافة (Modal) */}
+                          {showAddModal && (
+                            <div className="modal-overlay">
+                              <div className="modal">
+                                <div className="modal-header">
+                                  <h3 className="modal-title">{selectedSupplier ? t.edit : t.addSupplier}</h3>
+                                  <button onClick={() => setShowAddModal(false)} className="modal-close">✕</button>
+                                </div>
+                                <div className="modal-body">
+                                  <form onSubmit={handleSubmit}>
+                                    <div className="form-group">
+                                      <label className="form-label">{t.name}</label>
+                                      <input 
+                                        type="text" 
+                                        placeholder={t.name} 
+                                        className="form-input"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                        required
+                                      />
+                                    </div>
+                                    <div className="form-group">
+                                      <label className="form-label">{t.contactPerson}</label>
+                                      <input 
+                                        type="text" 
+                                        placeholder={t.contactPerson} 
+                                        className="form-input"
+                                        value={formData.contact_person}
+                                        onChange={(e) => setFormData({...formData, contact_person: e.target.value})}
+                                      />
+                                    </div>
+                                    <div className="form-group">
+                                      <label className="form-label">{t.phone}</label>
+                                      <input 
+                                        type="text" 
+                                        placeholder={t.phone} 
+                                        className="form-input"
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                                      />
+                                    </div>
+                                    <div className="form-actions">
+                                      <button type="button" onClick={() => setShowAddModal(false)} className="btn btn-outline">{t.cancel}</button>
+                                      <button type="submit" className="btn btn-primary">{t.save}</button>
+                                    </div>
+                                  </form>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                    
+                          <ReportDateRangeModal 
+                            isOpen={showReportModal}
+                            onClose={() => { setShowReportModal(false); setSelectedSupplier(null); }}
+                            onConfirm={(range) => {
+                              handlePrintSupplierStatement(selectedSupplier, range);
+                              setShowReportModal(false);
+                              setSelectedSupplier(null);
+                            }}
+                            t={t}
+                            title={isRtl ? 'تقرير كشف حساب المورد' : 'Supplier Statement Report'}
+                          />
+                        </div>
+                      );
+                    };
+                    
+                    export default SupplierManagement;
+                    

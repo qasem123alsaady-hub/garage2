@@ -1,14 +1,24 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
+// إعداد رؤوس CORS بشكل ديناميكي
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Max-Age: 86400");
+} else {
+    header("Access-Control-Allow-Origin: *");
+}
+
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header("Content-Type: application/json; charset=UTF-8");
 
-// معالجة طلبات OPTIONS (Preflight)
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit();
 }
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 include_once '../config/database.php';
 
@@ -20,9 +30,6 @@ $method = $_SERVER['REQUEST_METHOD'];
 // الحصول على البيانات المدخلة
 $input = json_decode(file_get_contents("php://input"), true);
 
-// الحصول على معرف من query string إذا كان موجوداً
-$id = isset($_GET['id']) ? $_GET['id'] : '';
-
 switch($method) {
     case 'GET':
         handleGet($db, $_GET);
@@ -31,10 +38,10 @@ switch($method) {
         handlePost($db, $input);
         break;
     case 'PUT':
-        handlePut($db, $id, $input);
+        handlePut($db, $input);
         break;
     case 'DELETE':
-        handleDelete($db, $id);
+        handleDelete($db, $_GET);
         break;
     default:
         http_response_code(405);
@@ -44,15 +51,14 @@ switch($method) {
 
 function handleGet($db, $params) {
     try {
-        // بناء الاستعلام بناءً على المعلمات
-        if (isset($params['customer_id'])) {
-            $query = "SELECT * FROM vehicles WHERE customer_id = :customer_id ORDER BY created_at DESC";
-            $stmt = $db->prepare($query);
-            $stmt->bindParam(":customer_id", $params['customer_id']);
-        } else if (isset($params['id'])) {
+        if (isset($params['id'])) {
             $query = "SELECT * FROM vehicles WHERE id = :id";
             $stmt = $db->prepare($query);
             $stmt->bindParam(":id", $params['id']);
+        } else if (isset($params['customer_id'])) {
+            $query = "SELECT * FROM vehicles WHERE customer_id = :customer_id";
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(":customer_id", $params['customer_id']);
         } else {
             $query = "SELECT * FROM vehicles ORDER BY created_at DESC";
             $stmt = $db->prepare($query);
@@ -60,216 +66,97 @@ function handleGet($db, $params) {
         
         $stmt->execute();
         $vehicles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
         echo json_encode($vehicles);
         
     } catch (Exception $e) {
         http_response_code(500);
-        echo json_encode([
-            "message" => "Error fetching vehicles", 
-            "success" => false, 
-            "error" => $e->getMessage()
-        ]);
+        echo json_encode(["message" => "Error fetching vehicles", "success" => false, "error" => $e->getMessage()]);
     }
 }
 
 function handlePost($db, $input) {
     try {
-        // التحقق من البيانات المطلوبة
-        $required_fields = ['make', 'model', 'license_plate', 'customer_id'];
-        foreach ($required_fields as $field) {
-            if (!isset($input[$field]) || empty($input[$field])) {
-                http_response_code(400);
-                echo json_encode(["message" => "Missing required field: $field", "success" => false]);
-                return;
-            }
-        }
-
-        // التحقق من عدم وجود مركبة بنفس اللوحة
-        $checkQuery = "SELECT id FROM vehicles WHERE license_plate = :license_plate";
-        $checkStmt = $db->prepare($checkQuery);
-        $checkStmt->bindParam(":license_plate", $input['license_plate']);
-        $checkStmt->execute();
-        
-        if ($checkStmt->rowCount() > 0) {
+        if (!isset($input['make']) || !isset($input['model']) || !isset($input['license_plate'])) {
             http_response_code(400);
-            echo json_encode([
-                "message" => "رقم اللوحة مسجل مسبقاً", 
-                "success" => false,
-                "error_code" => "LICENSE_PLATE_EXISTS"
-            ]);
+            echo json_encode(["message" => "Missing required fields", "success" => false]);
             return;
         }
 
-        // إضافة المركبة
-        $query = "INSERT INTO vehicles (id, make, model, year, license_plate, status, customer_id, created_at) 
-                  VALUES (:id, :make, :model, :year, :license_plate, :status, :customer_id, NOW())";
+        $query = "INSERT INTO vehicles SET id = :id, make = :make, model = :model, year = :year, license_plate = :license_plate, customer_id = :customer_id, status = :status";
         $stmt = $db->prepare($query);
         
-        $vehicleId = 'v' . time() . rand(1000, 9999);
-        $year = $input['year'] ?? date('Y');
+        $id = 'v' . time() . rand(1000, 9999);
         $status = $input['status'] ?? 'pending';
         
-        $stmt->bindParam(":id", $vehicleId);
+        $stmt->bindParam(":id", $id);
         $stmt->bindParam(":make", $input['make']);
         $stmt->bindParam(":model", $input['model']);
-        $stmt->bindParam(":year", $year);
+        $stmt->bindParam(":year", $input['year']);
         $stmt->bindParam(":license_plate", $input['license_plate']);
-        $stmt->bindParam(":status", $status);
         $stmt->bindParam(":customer_id", $input['customer_id']);
+        $stmt->bindParam(":status", $status);
         
         if ($stmt->execute()) {
-            // جلب بيانات المركبة المضافة
-            $getQuery = "SELECT * FROM vehicles WHERE id = :id";
-            $getStmt = $db->prepare($getQuery);
-            $getStmt->bindParam(":id", $vehicleId);
-            $getStmt->execute();
-            $vehicle = $getStmt->fetch(PDO::FETCH_ASSOC);
-            
-            echo json_encode([
-                "message" => "تم إضافة المركبة بنجاح", 
-                "success" => true,
-                "id" => $vehicleId,
-                "vehicle" => $vehicle
-            ]);
+            echo json_encode(["message" => "Vehicle created successfully", "success" => true, "id" => $id]);
         } else {
-            $errorInfo = $stmt->errorInfo();
-            throw new Exception("Database error: " . $errorInfo[2]);
+            throw new Exception("Failed to create vehicle");
         }
-        
     } catch (Exception $e) {
         http_response_code(500);
-        echo json_encode([
-            "message" => "Server error", 
-            "success" => false,
-            "error" => $e->getMessage()
-        ]);
+        echo json_encode(["message" => "Server error", "success" => false, "error" => $e->getMessage()]);
     }
 }
 
-function handlePut($db, $id, $input) {
+function handlePut($db, $input) {
     try {
-        if(empty($id)) {
+        if (!isset($input['id'])) {
             http_response_code(400);
-            echo json_encode(["message" => "Missing vehicle ID", "success" => false]);
+            echo json_encode(["message" => "Vehicle ID is required", "success" => false]);
             return;
         }
 
-        $updateFields = [];
-        $updateParams = [];
-        
-        $allowedFields = ['make', 'model', 'year', 'license_plate', 'status', 'customer_id'];
-        
-        foreach ($allowedFields as $field) {
-            if (isset($input[$field])) {
-                $updateFields[] = "$field = :$field";
-                $updateParams[":$field"] = $input[$field];
-            }
-        }
-        
-        if (empty($updateFields)) {
-            http_response_code(400);
-            echo json_encode(["message" => "No fields to update", "success" => false]);
-            return;
-        }
-        
-        $query = "UPDATE vehicles SET " . implode(', ', $updateFields) . ", updated_at = NOW() WHERE id = :id";
-        $updateParams[":id"] = $id;
-        
+        $query = "UPDATE vehicles SET make = :make, model = :model, year = :year, license_plate = :license_plate, customer_id = :customer_id, status = :status WHERE id = :id";
         $stmt = $db->prepare($query);
         
-        foreach ($updateParams as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
-
-        if($stmt->execute()) {
-            echo json_encode([
-                "message" => "تم تحديث بيانات المركبة بنجاح", 
-                "success" => true,
-                "affected_rows" => $stmt->rowCount()
-            ]);
-        } else {
-            $errorInfo = $stmt->errorInfo();
-            http_response_code(500);
-            echo json_encode([
-                "message" => "Database error", 
-                "success" => false,
-                "error" => $errorInfo[2]
-            ]);
-        }
+        $stmt->bindParam(":id", $input['id']);
+        $stmt->bindParam(":make", $input['make']);
+        $stmt->bindParam(":model", $input['model']);
+        $stmt->bindParam(":year", $input['year']);
+        $stmt->bindParam(":license_plate", $input['license_plate']);
+        $stmt->bindParam(":customer_id", $input['customer_id']);
+        $stmt->bindParam(":status", $input['status']);
         
+        if ($stmt->execute()) {
+            echo json_encode(["message" => "Vehicle updated successfully", "success" => true]);
+        } else {
+            throw new Exception("Failed to update vehicle");
+        }
     } catch (Exception $e) {
         http_response_code(500);
-        echo json_encode([
-            "message" => "Server error", 
-            "success" => false,
-            "error" => $e->getMessage()
-        ]);
+        echo json_encode(["message" => "Server error", "success" => false, "error" => $e->getMessage()]);
     }
 }
 
-function handleDelete($db, $id) {
+function handleDelete($db, $params) {
     try {
-        if(empty($id)) {
+        $id = $params['id'] ?? '';
+        if (empty($id)) {
             http_response_code(400);
-            echo json_encode(["message" => "Missing vehicle ID", "success" => false]);
+            echo json_encode(["message" => "Vehicle ID is required", "success" => false]);
             return;
         }
 
-        // البدء بمعاملة قاعدة البيانات
-        $db->beginTransaction();
-
-        try {
-            // 1. حذف جميع الخدمات المرتبطة بالمركبة
-            $deleteServicesQuery = "DELETE FROM services WHERE vehicle_id = :vehicle_id";
-            $deleteServicesStmt = $db->prepare($deleteServicesQuery);
-            $deleteServicesStmt->bindParam(":vehicle_id", $id);
-            $deleteServicesStmt->execute();
-            
-            $deletedServicesCount = $deleteServicesStmt->rowCount();
-
-            // 2. حذف المركبة نفسها
-            $deleteVehicleQuery = "DELETE FROM vehicles WHERE id = :id";
-            $deleteVehicleStmt = $db->prepare($deleteVehicleQuery);
-            $deleteVehicleStmt->bindParam(":id", $id);
-            $deleteVehicleStmt->execute();
-            
-            $deletedVehicle = $deleteVehicleStmt->rowCount() > 0;
-            
-            if ($deletedVehicle) {
-                // تأكيد المعاملة
-                $db->commit();
-                
-                echo json_encode([
-                    "message" => "تم حذف المركبة والخدمات المرتبطة بها بنجاح", 
-                    "success" => true,
-                    "deleted_services" => $deletedServicesCount,
-                    "deleted_vehicle" => true
-                ]);
-            } else {
-                // التراجع عن المعاملة إذا لم يتم حذف المركبة
-                $db->rollBack();
-                
-                http_response_code(404);
-                echo json_encode([
-                    "message" => "المركبة غير موجودة", 
-                    "success" => false
-                ]);
-            }
-            
-        } catch (Exception $e) {
-            // التراجع عن المعاملة في حالة حدوث خطأ
-            $db->rollBack();
-            throw $e;
-        }
+        $query = "DELETE FROM vehicles WHERE id = :id";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":id", $id);
         
+        if ($stmt->execute()) {
+            echo json_encode(["message" => "Vehicle deleted successfully", "success" => true]);
+        } else {
+            throw new Exception("Failed to delete vehicle");
+        }
     } catch (Exception $e) {
         http_response_code(500);
-        echo json_encode([
-            "message" => "Server error: " . $e->getMessage(), 
-            "success" => false,
-            "error" => $e->getMessage()
-        ]);
+        echo json_encode(["message" => "Server error", "success" => false, "error" => $e->getMessage()]);
     }
 }
-?>

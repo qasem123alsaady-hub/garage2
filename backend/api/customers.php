@@ -1,14 +1,24 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
+// إعداد رؤوس CORS بشكل ديناميكي
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Max-Age: 86400");
+} else {
+    header("Access-Control-Allow-Origin: *");
+}
+
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header("Content-Type: application/json; charset=UTF-8");
 
-// معالجة طلبات OPTIONS (Preflight)
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit();
 }
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 include_once '../config/database.php';
 
@@ -17,297 +27,177 @@ $db = $database->getConnection();
 
 $method = $_SERVER['REQUEST_METHOD'];
 
-if ($method == 'GET') {
-    // الحصول على جميع العملاء
-    $query = "SELECT * FROM customers ORDER BY created_at DESC";
-    $stmt = $db->prepare($query);
-    $stmt->execute();
-    
-    $customers = [];
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $customers[] = $row;
-    }
-    
-    echo json_encode($customers);
+// الحصول على البيانات المدخلة
+$input = json_decode(file_get_contents("php://input"), true);
+
+switch($method) {
+    case 'GET':
+        handleGet($db, $_GET);
+        break;
+    case 'POST':
+        handlePost($db, $input);
+        break;
+    case 'PUT':
+        handlePut($db, $input);
+        break;
+    case 'DELETE':
+        handleDelete($db, $input);
+        break;
+    default:
+        http_response_code(405);
+        echo json_encode(["message" => "Method not allowed", "success" => false]);
+        break;
 }
 
-if ($method == 'POST') {
-    // إضافة عميل جديد
-    $data = json_decode(file_get_contents("php://input"));
-    
-    $name = $data->name ?? '';
-    $phone = $data->phone ?? '';
-    $email = $data->email ?? '';
-    $address = $data->address ?? '';
-    
-    // التحقق من البيانات المطلوبة
-    if (empty($name) || empty($phone)) {
-        http_response_code(400);
-        echo json_encode([
-            "message" => "الرجاء إدخال الاسم ورقم الهاتف", 
-            "success" => false
-        ]);
-        exit();
-    }
-    
-    // التحقق من وجود رقم الهاتف مسبقاً
-    $checkQuery = "SELECT id FROM customers WHERE phone = :phone";
-    $checkStmt = $db->prepare($checkQuery);
-    $checkStmt->bindParam(":phone", $phone);
-    $checkStmt->execute();
-    
-    if ($checkStmt->rowCount() > 0) {
-        http_response_code(400);
-        echo json_encode([
-            "message" => "رقم الهاتف مسجل مسبقاً لدى عميل آخر", 
-            "success" => false,
-            "error_code" => "PHONE_EXISTS"
-        ]);
-        exit();
-    }
-    
-    // إنشاء ID فريد للعميل
-    $id = 'c' . time() . rand(1000, 9999);
-    
-    // إضافة العميل
-    $query = "INSERT INTO customers (id, name, phone, email, address, created_at) 
-              VALUES (:id, :name, :phone, :email, :address, NOW())";
-    $stmt = $db->prepare($query);
-    
-    $stmt->bindParam(":id", $id);
-    $stmt->bindParam(":name", $name);
-    $stmt->bindParam(":phone", $phone);
-    $stmt->bindParam(":email", $email);
-    $stmt->bindParam(":address", $address);
-    
-    if($stmt->execute()) {
-        // محاولة إنشاء حساب مستخدم للعميل الجديد
-        $user_creation_result = createCustomerUserAccount($db, $name, $phone, $id);
-        
-        // إعداد الاستجابة
-        $response = [
-            "message" => "تم إضافة العميل بنجاح", 
-            "success" => true, 
-            "id" => $id,
-            "customer" => [
-                "id" => $id,
-                "name" => $name,
-                "phone" => $phone,
-                "email" => $email,
-                "address" => $address,
-                "created_at" => date('Y-m-d H:i:s')
-            ]
-        ];
-        
-        if ($user_creation_result['success']) {
-            $response['user_account'] = [
-                "username" => $user_creation_result['username'],
-                "password" => $user_creation_result['password'],
-                "user_id" => $user_creation_result['user_id']
-            ];
-            $response['message'] = "تم إضافة العميل وإنشاء حساب المستخدم بنجاح";
+function handleGet($db, $params) {
+    try {
+        if (isset($params['id'])) {
+            $query = "SELECT * FROM customers WHERE id = :id";
+            $stmt = $db->prepare($query);
+            $stmt->bindParam(":id", $params['id']);
         } else {
-            $response['user_account_error'] = $user_creation_result['message'];
-            $response['message'] = "تم إضافة العميل بنجاح، ولكن حدث خطأ في إنشاء حساب المستخدم: " . $user_creation_result['message'];
+            $query = "SELECT * FROM customers ORDER BY created_at DESC";
+            $stmt = $db->prepare($query);
         }
         
-        echo json_encode($response);
-    } else {
-        http_response_code(500);
-        echo json_encode([
-            "message" => "فشل في إضافة العميل", 
-            "success" => false
-        ]);
-    }
-}
-
-if ($method == 'PUT') {
-    // تحديث بيانات العميل
-    $data = json_decode(file_get_contents("php://input"));
-    
-    $id = $data->id ?? '';
-    $name = $data->name ?? '';
-    $phone = $data->phone ?? '';
-    $email = $data->email ?? '';
-    $address = $data->address ?? '';
-    
-    if (empty($id) || empty($name) || empty($phone)) {
-        http_response_code(400);
-        echo json_encode([
-            "message" => "بيانات ناقصة للتحديث", 
-            "success" => false
-        ]);
-        exit();
-    }
-    
-    // التحقق من وجود رقم الهاتف مسبقاً (لعميل آخر)
-    $checkQuery = "SELECT id FROM customers WHERE phone = :phone AND id != :id";
-    $checkStmt = $db->prepare($checkQuery);
-    $checkStmt->bindParam(":phone", $phone);
-    $checkStmt->bindParam(":id", $id);
-    $checkStmt->execute();
-    
-    if ($checkStmt->rowCount() > 0) {
-        http_response_code(400);
-        echo json_encode([
-            "message" => "رقم الهاتف مسجل مسبقاً لدى عميل آخر", 
-            "success" => false,
-            "error_code" => "PHONE_EXISTS"
-        ]);
-        exit();
-    }
-    
-    $query = "UPDATE customers SET name = :name, phone = :phone, email = :email, address = :address, updated_at = NOW() WHERE id = :id";
-    $stmt = $db->prepare($query);
-    
-    $stmt->bindParam(":id", $id);
-    $stmt->bindParam(":name", $name);
-    $stmt->bindParam(":phone", $phone);
-    $stmt->bindParam(":email", $email);
-    $stmt->bindParam(":address", $address);
-    
-    if($stmt->execute()) {
-        echo json_encode([
-            "message" => "تم تحديث بيانات العميل بنجاح", 
-            "success" => true
-        ]);
-    } else {
-        http_response_code(500);
-        echo json_encode([
-            "message" => "فشل في تحديث بيانات العميل", 
-            "success" => false
-        ]);
-    }
-}
-
-if ($method == 'DELETE') {
-    // حذف العميل
-    $data = json_decode(file_get_contents("php://input"));
-    
-    $id = $data->id ?? '';
-    
-    if (empty($id)) {
-        http_response_code(400);
-        echo json_encode([
-            "message" => "معرف العميل مطلوب", 
-            "success" => false
-        ]);
-        exit();
-    }
-    
-    try {
-        $db->beginTransaction();
+        $stmt->execute();
+        $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        echo json_encode($customers);
         
-        // حذف جميع الخدمات المرتبطة بمركبات العميل أولاً
-        $deleteServicesQuery = "DELETE services FROM services 
-                               INNER JOIN vehicles ON services.vehicle_id = vehicles.id 
-                               WHERE vehicles.customer_id = :id";
-        $stmt1 = $db->prepare($deleteServicesQuery);
-        $stmt1->bindParam(":id", $id);
-        $stmt1->execute();
-        
-        // حذف جميع مركبات العميل
-        $deleteVehiclesQuery = "DELETE FROM vehicles WHERE customer_id = :id";
-        $stmt2 = $db->prepare($deleteVehiclesQuery);
-        $stmt2->bindParam(":id", $id);
-        $stmt2->execute();
-        
-        // حذف حساب المستخدم المرتبط (إن وجد)
-        $deleteUserQuery = "DELETE FROM users WHERE customer_id = :id";
-        $stmt3 = $db->prepare($deleteUserQuery);
-        $stmt3->bindParam(":id", $id);
-        $stmt3->execute();
-        
-        // حذف العميل
-        $deleteCustomerQuery = "DELETE FROM customers WHERE id = :id";
-        $stmt4 = $db->prepare($deleteCustomerQuery);
-        $stmt4->bindParam(":id", $id);
-        $stmt4->execute();
-        
-        $db->commit();
-        
-        echo json_encode([
-            "message" => "تم حذف العميل وجميع البيانات المرتبطة به بنجاح", 
-            "success" => true
-        ]);
     } catch (Exception $e) {
-        $db->rollBack();
         http_response_code(500);
-        echo json_encode([
-            "message" => "فشل في حذف العميل: " . $e->getMessage(), 
-            "success" => false
-        ]);
+        echo json_encode(["message" => "Error fetching customers", "success" => false, "error" => $e->getMessage()]);
     }
 }
 
-// دالة مساعدة لإنشاء حساب مستخدم للعميل
-function createCustomerUserAccount($db, $customer_name, $customer_phone, $customer_id) {
+function handlePost($db, $input) {
     try {
-        // تنظيف رقم الهاتف
-        $cleaned_phone = preg_replace('/[^0-9]/', '', $customer_phone);
-        
-        if (empty($cleaned_phone)) {
-            return ['success' => false, 'message' => 'رقم الهاتف غير صالح'];
+        if (!isset($input['name']) || !isset($input['phone'])) {
+            http_response_code(400);
+            echo json_encode(["message" => "Name and phone are required", "success" => false]);
+            return;
         }
-        
-        $username = $cleaned_phone;
-        $password = '123456';
-        $name = $customer_name;
-        $role = 'customer';
-        
-        // التحقق من عدم وجود مستخدم بنفس اسم المستخدم
-        $check_query = "SELECT id FROM users WHERE username = :username";
-        $check_stmt = $db->prepare($check_query);
-        $check_stmt->bindParam(':username', $username);
-        $check_stmt->execute();
-        
-        if ($check_stmt->rowCount() > 0) {
-            return [
-                'success' => false, 
-                'message' => 'رقم الهاتف مسجل مسبقاً كاسم مستخدم',
-                'username' => $username
-            ];
+
+        // التحقق من وجود العميل مسبقاً بنفس رقم الهاتف
+        $checkQuery = "SELECT id FROM customers WHERE phone = :phone";
+        $checkStmt = $db->prepare($checkQuery);
+        $checkStmt->bindParam(":phone", $input['phone']);
+        $checkStmt->execute();
+        if ($checkStmt->rowCount() > 0) {
+            echo json_encode(["message" => "العميل مسجل مسبقاً بنفس رقم الهاتف", "success" => false]);
+            return;
         }
-        
-        // إنشاء ID فريد للمستخدم
-        $user_id = 'u' . time() . rand(1000, 9999);
-        
-        // إنشاء المستخدم الجديد
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $query = "INSERT INTO users (id, username, password, name, role, customer_id, created_at) 
-                  VALUES (:id, :username, :password, :name, :role, :customer_id, NOW())";
-        
+
+        $db->beginTransaction();
+
+        $query = "INSERT INTO customers SET id = :id, name = :name, phone = :phone, email = :email, address = :address";
         $stmt = $db->prepare($query);
-        $stmt->bindParam(':id', $user_id);
-        $stmt->bindParam(':username', $username);
-        $stmt->bindParam(':password', $hashed_password);
-        $stmt->bindParam(':name', $name);
-        $stmt->bindParam(':role', $role);
-        $stmt->bindParam(':customer_id', $customer_id);
+        
+        $id = 'c' . time() . rand(1000, 9999);
+        $stmt->bindParam(":id", $id);
+        $stmt->bindParam(":name", $input['name']);
+        $stmt->bindParam(":phone", $input['phone']);
+        $stmt->bindParam(":email", $input['email']);
+        $stmt->bindParam(":address", $input['address']);
         
         if ($stmt->execute()) {
-            return [
-                'success' => true, 
-                'message' => 'تم إنشاء حساب المستخدم بنجاح',
-                'user_id' => $user_id,
-                'username' => $username,
-                'password' => $password,
-                'name' => $name,
-                'role' => $role,
-                'customer_id' => $customer_id
-            ];
+            // إنشاء حساب مستخدم للعميل
+            $userId = 'u' . time() . rand(1000, 9999);
+            $username = $input['phone']; // رقم الهاتف هو اسم المستخدم
+            $password = $input['phone']; // رقم الهاتف هو كلمة المرور الافتراضية
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $role = 'customer';
+            
+            // التأكد من عدم وجود مستخدم بنفس الاسم
+            $checkUserQuery = "SELECT id FROM users WHERE username = :username";
+            $checkUserStmt = $db->prepare($checkUserQuery);
+            $checkUserStmt->bindParam(":username", $username);
+            $checkUserStmt->execute();
+            
+            if ($checkUserStmt->rowCount() == 0) {
+                $userQuery = "INSERT INTO users (id, username, password, name, role, customer_id) VALUES (:id, :username, :password, :name, :role, :customer_id)";
+                $userStmt = $db->prepare($userQuery);
+                $userStmt->bindParam(":id", $userId);
+                $userStmt->bindParam(":username", $username);
+                $userStmt->bindParam(":password", $hashedPassword);
+                $userStmt->bindParam(":name", $input['name']);
+                $userStmt->bindParam(":role", $role);
+                $userStmt->bindParam(":customer_id", $id);
+                
+                if (!$userStmt->execute()) {
+                    $db->rollBack();
+                    throw new Exception("Failed to create user account");
+                }
+            }
+
+            $db->commit();
+            echo json_encode([
+                "message" => "Customer and user account created successfully", 
+                "success" => true, 
+                "id" => $id,
+                "user_account" => [
+                    "username" => $username,
+                    "password" => $username
+                ]
+            ]);
         } else {
-            $error_info = $stmt->errorInfo();
-            return [
-                'success' => false, 
-                'message' => 'فشل في إنشاء حساب المستخدم: ' . $error_info[2]
-            ];
+            $db->rollBack();
+            throw new Exception("Failed to create customer");
         }
     } catch (Exception $e) {
-        return [
-            'success' => false, 
-            'message' => 'خطأ في إنشاء حساب المستخدم: ' . $e->getMessage()
-        ];
+        if ($db->inTransaction()) $db->rollBack();
+        http_response_code(500);
+        echo json_encode(["message" => "Server error", "success" => false, "error" => $e->getMessage()]);
     }
 }
-?>
+
+function handlePut($db, $input) {
+    try {
+        if (!isset($input['id'])) {
+            http_response_code(400);
+            echo json_encode(["message" => "Customer ID is required", "success" => false]);
+            return;
+        }
+
+        $query = "UPDATE customers SET name = :name, phone = :phone, email = :email, address = :address WHERE id = :id";
+        $stmt = $db->prepare($query);
+        
+        $stmt->bindParam(":id", $input['id']);
+        $stmt->bindParam(":name", $input['name']);
+        $stmt->bindParam(":phone", $input['phone']);
+        $stmt->bindParam(":email", $input['email']);
+        $stmt->bindParam(":address", $input['address']);
+        
+        if ($stmt->execute()) {
+            echo json_encode(["message" => "Customer updated successfully", "success" => true]);
+        } else {
+            throw new Exception("Failed to update customer");
+        }
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(["message" => "Server error", "success" => false, "error" => $e->getMessage()]);
+    }
+}
+
+function handleDelete($db, $input) {
+    try {
+        if (!isset($input['id'])) {
+            http_response_code(400);
+            echo json_encode(["message" => "Customer ID is required", "success" => false]);
+            return;
+        }
+
+        $query = "DELETE FROM customers WHERE id = :id";
+        $stmt = $db->prepare($query);
+        $stmt->bindParam(":id", $input['id']);
+        
+        if ($stmt->execute()) {
+            echo json_encode(["message" => "Customer deleted successfully", "success" => true]);
+        } else {
+            throw new Exception("Failed to delete customer");
+        }
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(["message" => "Server error", "success" => false, "error" => $e->getMessage()]);
+    }
+}

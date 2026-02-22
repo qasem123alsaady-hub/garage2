@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AddVehicleModal from '../modals/VehicleModal';
 import VehiclePaymentModal from '../modals/VehiclePaymentModal';
+import ReportDateRangeModal from '../modals/ReportDateRangeModal';
 import StatusBadge from '../common/StatusBadge';
 import apiService from '../../services/api';
 
@@ -10,6 +11,7 @@ const VehicleManagement = ({ t, isRtl, permissions }) => {
   const [services, setServices] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -46,11 +48,22 @@ const VehicleManagement = ({ t, isRtl, permissions }) => {
     }
   };
 
-  const handlePrintVehicleReport = (vehicle) => {
+  const handlePrintVehicleReport = (vehicle, dateRange) => {
     if (!vehicle) return;
     
     const language = isRtl ? 'ar' : 'en';
-    const vehicleServices = services.filter(s => s.vehicle_id === vehicle.id);
+    
+    // Filter services by vehicle and date range
+    const vehicleServices = services.filter(s => {
+      if (s.vehicle_id !== vehicle.id) return false;
+      
+      const serviceDate = new Date(s.date);
+      const startDate = dateRange?.start_date ? new Date(dateRange.start_date) : null;
+      const endDate = dateRange?.end_date ? new Date(dateRange.end_date) : null;
+      
+      return (!startDate || serviceDate >= startDate) && (!endDate || serviceDate <= endDate);
+    });
+
     const customer = customers.find(c => c.id === vehicle.customer_id);
     
     const getServiceTypeLabel = (type) => {
@@ -60,6 +73,12 @@ const VehicleManagement = ({ t, isRtl, permissions }) => {
           'خدمة الفرامل': t.brakeService, 'تدوير الإطارات': t.tireRotation, 'إصلاح المحرك': t.engineRepair, 'أخرى': t.other
         };
         return mapping[type] || type;
+    };
+
+    const vehicleStats = {
+      totalCost: vehicleServices.reduce((sum, s) => sum + parseFloat(s.cost || 0), 0),
+      totalPaid: vehicleServices.reduce((sum, s) => sum + parseFloat(s.amount_paid || 0), 0),
+      totalRemaining: vehicleServices.reduce((sum, s) => sum + parseFloat(s.remaining_amount || 0), 0)
     };
 
     const reportContent = `
@@ -77,6 +96,8 @@ const VehicleManagement = ({ t, isRtl, permissions }) => {
               th, td { border: 1px solid #ddd; padding: 8px; text-align: ${language === 'ar' ? 'right' : 'left'}; }
               th { background-color: #f2f2f2; }
               .total { font-weight: bold; font-size: 18px; color: #10b981; }
+              .remaining { font-weight: bold; font-size: 18px; color: #ef4444; }
+              .summary { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
               @media print { .no-print { display: none; } body { margin: 0; } }
           </style>
       </head>
@@ -84,6 +105,7 @@ const VehicleManagement = ({ t, isRtl, permissions }) => {
           <div class="header">
               <img src="${t.logo}" alt="Logo" style="height: 100px; margin-bottom: 10px;" onerror="this.style.display='none';">
               <h1>${language === 'ar' ? 'تقرير مركبة - GaragePro Manager' : 'Vehicle Report - GaragePro Manager'}</h1>
+              <p>${t.from}: ${dateRange?.start_date || '-'} ${t.to}: ${dateRange?.end_date || '-'}</p>
               <p>${language === 'ar' ? 'تاريخ التقرير' : 'Report Date'}: ${new Date().toLocaleDateString()}</p>
           </div>
           
@@ -105,7 +127,7 @@ const VehicleManagement = ({ t, isRtl, permissions }) => {
           </div>
           
           <div class="section">
-              <h3>${language === 'ar' ? 'سجل الخدمات' : 'Service History'}</h3>
+              <h3>${language === 'ar' ? 'سجل الخدمات في الفترة المحددة' : 'Service History in Period'}</h3>
               ${vehicleServices.length > 0 ? `
                 <table>
                     <thead>
@@ -127,7 +149,16 @@ const VehicleManagement = ({ t, isRtl, permissions }) => {
                         `).join('')}
                     </tbody>
                 </table>
-              ` : '<p>لا توجد خدمات مسجلة لهذه المركبة</p>'}
+              ` : '<p>لا توجد خدمات مسجلة لهذه المركبة في هذه الفترة</p>'}
+          </div>
+
+          <div class="summary">
+              <h3>${language === 'ar' ? 'ملخص الفترة' : 'Period Summary'}</h3>
+              <table>
+                  <tr><td>${language === 'ar' ? 'إجمالي التكلفة' : 'Total Cost'}</td><td class="total">$${vehicleStats.totalCost.toFixed(2)}</td></tr>
+                  <tr><td>${language === 'ar' ? 'إجمالي المدفوع' : 'Total Paid'}</td><td>$${vehicleStats.totalPaid.toFixed(2)}</td></tr>
+                  <tr><td><strong>${language === 'ar' ? 'المبلغ المستحق' : 'Amount Due'}</strong></td><td class="remaining"><strong>$${vehicleStats.totalRemaining.toFixed(2)}</strong></td></tr>
+              </table>
           </div>
           <script>window.onload = function() { window.print(); }</script>
       </body>
@@ -166,7 +197,8 @@ const VehicleManagement = ({ t, isRtl, permissions }) => {
   };
 
   const handlePrintReport = (vehicle) => {
-    handlePrintVehicleReport(vehicle);
+    setSelectedVehicle(vehicle);
+    setShowReportModal(true);
   };
 
   return (
@@ -214,14 +246,24 @@ const VehicleManagement = ({ t, isRtl, permissions }) => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <div className="flex items-center gap-2">
                     {permissions.canManagePayments && (
-                      <button 
-                        onClick={() => { setSelectedVehicle(vehicle); setShowPaymentModal(true); }}
-                        className="action-btn"
-                        style={{backgroundColor: '#ecfdf5', color: '#059669'}}
-                        title={isRtl ? 'دفع شامل' : 'Comprehensive Payment'}
-                      >
-                        💰
-                      </button>
+                      <>
+                        <button 
+                          onClick={() => { setSelectedVehicle(vehicle); setShowPaymentModal(true); }}
+                          className="action-btn"
+                          style={{backgroundColor: '#ecfdf5', color: '#059669'}}
+                          title={isRtl ? 'دفع شامل' : 'Comprehensive Payment'}
+                        >
+                          💰
+                        </button>
+                        <button 
+                          onClick={() => { setSelectedVehicle(vehicle); setShowPaymentModal(true); }}
+                          className="action-btn"
+                          style={{backgroundColor: '#fff7ed', color: '#ea580c'}}
+                          title={t.paymentHistory}
+                        >
+                          📜
+                        </button>
+                      </>
                     )}
                     {permissions.canViewIndividualReports && (
                       <button 
@@ -294,6 +336,18 @@ const VehicleManagement = ({ t, isRtl, permissions }) => {
           permissions={permissions}
         />
       )}
+
+      <ReportDateRangeModal 
+        isOpen={showReportModal}
+        onClose={() => { setShowReportModal(false); setSelectedVehicle(null); }}
+        onConfirm={(range) => {
+          handlePrintVehicleReport(selectedVehicle, range);
+          setShowReportModal(false);
+          setSelectedVehicle(null);
+        }}
+        t={t}
+        title={t.vehicleReport}
+      />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AddCustomerModal from '../modals/CustomerModal';
+import ReportDateRangeModal from '../modals/ReportDateRangeModal';
 import apiService from '../../services/api';
 
 const CustomerManagement = ({ t, isRtl, permissions }) => {
@@ -8,6 +9,7 @@ const CustomerManagement = ({ t, isRtl, permissions }) => {
   const [services, setServices] = useState([]);
   const [payments, setPayments] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -30,7 +32,7 @@ const CustomerManagement = ({ t, isRtl, permissions }) => {
       const [vData, sData, pData] = await Promise.all([
         apiService.vehicles.getAll(),
         apiService.services.getAll(),
-        fetch('http://localhost/car-garage/backend/api/payments.php').then(res => res.json())
+        apiService.payments.getAll()
       ]);
       setVehicles(vData);
       setServices(sData);
@@ -40,17 +42,25 @@ const CustomerManagement = ({ t, isRtl, permissions }) => {
     }
   };
 
-  const handlePrintCustomerReport = (selectedCustomer) => {
-    if (!selectedCustomer) return;
+  const handlePrintCustomerReport = (customer, dateRange) => {
+    if (!customer) return;
     
-    const customerId = selectedCustomer.id;
+    const customerId = customer.id;
     const language = isRtl ? 'ar' : 'en';
     const customerVehicles = vehicles.filter(v => v.customer_id === customerId);
-    const customerServices = services.filter(s => customerVehicles.some(v => v.id === s.vehicle_id));
-    const filteredServices = customerServices; // Simplified, no date filter here
-    const allPayments = payments.filter(p => filteredServices.some(s => s.id === p.service_id));
     
-    const getServicesForVehicle = (vehicleId) => services.filter(s => s.vehicle_id === vehicleId);
+    // Filter services by vehicle and date range
+    const filteredServices = services.filter(s => {
+      const isCustomerVehicle = customerVehicles.some(v => v.id === s.vehicle_id);
+      if (!isCustomerVehicle) return false;
+      
+      const serviceDate = new Date(s.date);
+      const startDate = dateRange?.start_date ? new Date(dateRange.start_date) : null;
+      const endDate = dateRange?.end_date ? new Date(dateRange.end_date) : null;
+      
+      return (!startDate || serviceDate >= startDate) && (!endDate || serviceDate <= endDate);
+    });
+
     const getServiceTypeLabel = (type) => {
         const mapping = {
           'oil_change': t.oilChange, 'brake_service': t.brakeService, 'tire_rotation': t.tireRotation,
@@ -62,14 +72,10 @@ const CustomerManagement = ({ t, isRtl, permissions }) => {
 
     const customerStats = {
       totalVehicles: customerVehicles.length,
-      totalServices: customerServices.length,
-      filteredServices: filteredServices.length,
-      totalCost: customerServices.reduce((sum, s) => sum + parseFloat(s.cost || 0), 0),
-      totalPaid: customerServices.reduce((sum, s) => sum + parseFloat(s.amount_paid || 0), 0),
-      totalRemaining: customerServices.reduce((sum, s) => sum + parseFloat(s.remaining_amount || 0), 0),
-      filteredCost: filteredServices.reduce((sum, s) => sum + parseFloat(s.cost || 0), 0),
-      filteredPaid: filteredServices.reduce((sum, s) => sum + parseFloat(s.amount_paid || 0), 0),
-      filteredRemaining: filteredServices.reduce((sum, s) => sum + parseFloat(s.remaining_amount || 0), 0)
+      totalServices: filteredServices.length,
+      totalCost: filteredServices.reduce((sum, s) => sum + parseFloat(s.cost || 0), 0),
+      totalPaid: filteredServices.reduce((sum, s) => sum + parseFloat(s.amount_paid || 0), 0),
+      totalRemaining: filteredServices.reduce((sum, s) => sum + parseFloat(s.remaining_amount || 0), 0)
     };
 
     const reportContent = `
@@ -77,7 +83,7 @@ const CustomerManagement = ({ t, isRtl, permissions }) => {
       <html dir="${language === 'ar' ? 'rtl' : 'ltr'}">
       <head>
           <meta charset="UTF-8">
-          <title>${language === 'ar' ? 'تقرير العميل' : 'Customer Report'} - ${selectedCustomer.name}</title>
+          <title>${language === 'ar' ? 'تقرير العميل' : 'Customer Report'} - ${customer.name}</title>
           <style>
               body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; line-height: 1.6; }
               .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
@@ -89,13 +95,6 @@ const CustomerManagement = ({ t, isRtl, permissions }) => {
               .total { font-weight: bold; font-size: 18px; color: #10b981; }
               .remaining { font-weight: bold; font-size: 18px; color: #ef4444; }
               .summary { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
-              .status-badge, .payment-badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; }
-              .status-pending { background: #dbeafe; color: #1d4ed8; }
-              .status-completed { background: #bbf7d0; color: #16a34a; }
-              .payment-paid { background: #bbf7d0; color: #16a34a; }
-              .payment-pending { background: #fed7aa; color: #ea580c; }
-              .payment-partial { background: #fef3c7; color: #d97706; }
-              .payment-method-badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; background: #f3f4f6; }
               @media print { .no-print { display: none; } body { margin: 0; } }
           </style>
       </head>
@@ -103,44 +102,52 @@ const CustomerManagement = ({ t, isRtl, permissions }) => {
           <div class="header">
               <img src="${t.logo}" alt="Logo" style="height: 100px; margin-bottom: 10px;" onerror="this.style.display='none';">
               <h1>${language === 'ar' ? 'تقرير عميل - GaragePro Manager' : 'Customer Report - GaragePro Manager'}</h1>
+              <p>${t.from}: ${dateRange?.start_date || '-'} ${t.to}: ${dateRange?.end_date || '-'}</p>
               <p>${language === 'ar' ? 'تاريخ التقرير' : 'Report Date'}: ${new Date().toLocaleDateString()}</p>
           </div>
           
           <div class="section">
               <h3>${language === 'ar' ? 'معلومات العميل' : 'Customer Information'}</h3>
               <table>
-                  <tr><td>${language === 'ar' ? 'الاسم' : 'Name'}</td><td>${selectedCustomer.name}</td></tr>
-                  <tr><td>${language === 'ar' ? 'الهاتف' : 'Phone'}</td><td>${selectedCustomer.phone}</td></tr>
-                  <tr><td>${language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</td><td>${selectedCustomer.email || '-'}</td></tr>
+                  <tr><td>${language === 'ar' ? 'الاسم' : 'Name'}</td><td>${customer.name}</td></tr>
+                  <tr><td>${language === 'ar' ? 'الهاتف' : 'Phone'}</td><td>${customer.phone}</td></tr>
+                  <tr><td>${language === 'ar' ? 'البريد الإلكتروني' : 'Email'}</td><td>${customer.email || '-'}</td></tr>
               </table>
           </div>
           
           <div class="section">
-              <h3>${language === 'ar' ? 'المركبات المسجلة' : 'Registered Vehicles'} (${customerVehicles.length})</h3>
+              <h3>${language === 'ar' ? 'سجل الخدمات في الفترة المحددة' : 'Service History in Period'} (${filteredServices.length})</h3>
               <table>
                   <thead>
                       <tr>
-                          <th>${language === 'ar' ? 'الماركة والموديل' : 'Make & Model'}</th>
-                          <th>${language === 'ar' ? 'السنة' : 'Year'}</th>
-                          <th>${language === 'ar' ? 'اللوحة' : 'License Plate'}</th>
-                          <th>${language === 'ar' ? 'التكلفة' : 'Cost'}</th>
+                          <th>${t.date}</th>
+                          <th>${t.vehicle}</th>
+                          <th>${t.serviceType}</th>
+                          <th>${t.cost}</th>
+                          <th>${t.paid}</th>
+                          <th>${t.remaining}</th>
                       </tr>
                   </thead>
                   <tbody>
-                      ${customerVehicles.map(v => `
+                      ${filteredServices.map(s => {
+                        const v = customerVehicles.find(veh => veh.id === s.vehicle_id);
+                        return `
                           <tr>
-                              <td>${v.make} ${v.model}</td>
-                              <td>${v.year}</td>
-                              <td>${v.license_plate}</td>
-                              <td>$${getServicesForVehicle(v.id).reduce((sum, s) => sum + parseFloat(s.cost || 0), 0).toFixed(2)}</td>
+                              <td>${s.date}</td>
+                              <td>${v ? `${v.make} ${v.model}` : '-'}</td>
+                              <td>${getServiceTypeLabel(s.type)}</td>
+                              <td>$${parseFloat(s.cost).toFixed(2)}</td>
+                              <td>$${parseFloat(s.amount_paid).toFixed(2)}</td>
+                              <td>$${parseFloat(s.remaining_amount).toFixed(2)}</td>
                           </tr>
-                      `).join('')}
+                        `;
+                      }).join('')}
                   </tbody>
               </table>
           </div>
 
           <div class="summary">
-              <h3>${language === 'ar' ? 'ملخص الحساب' : 'Account Summary'}</h3>
+              <h3>${language === 'ar' ? 'ملخص الفترة' : 'Period Summary'}</h3>
               <table>
                   <tr><td>${language === 'ar' ? 'إجمالي التكلفة' : 'Total Cost'}</td><td class="total">$${customerStats.totalCost.toFixed(2)}</td></tr>
                   <tr><td>${language === 'ar' ? 'إجمالي المدفوع' : 'Total Paid'}</td><td>$${customerStats.totalPaid.toFixed(2)}</td></tr>
@@ -177,7 +184,8 @@ const CustomerManagement = ({ t, isRtl, permissions }) => {
   };
 
   const handlePrintReport = (customer) => {
-    handlePrintCustomerReport(customer);
+    setSelectedCustomer(customer);
+    setShowReportModal(true);
   };
 
   return (
@@ -273,6 +281,18 @@ const CustomerManagement = ({ t, isRtl, permissions }) => {
         }}
         t={t}
         customer={selectedCustomer}
+      />
+
+      <ReportDateRangeModal 
+        isOpen={showReportModal}
+        onClose={() => { setShowReportModal(false); setSelectedCustomer(null); }}
+        onConfirm={(range) => {
+          handlePrintCustomerReport(selectedCustomer, range);
+          setShowReportModal(false);
+          setSelectedCustomer(null);
+        }}
+        t={t}
+        title={t.customerReport}
       />
     </div>
   );

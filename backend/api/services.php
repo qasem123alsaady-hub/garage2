@@ -1,10 +1,20 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Content-Type: application/json; charset=UTF-8");
+// إعداد رؤوس CORS بشكل ديناميكي
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Max-Age: 86400");
+} else {
+    header("Access-Control-Allow-Origin: *");
+}
+
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header("Content-Type: application/json; charset=UTF-8");
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
 
-// معالجة طلبات OPTIONS (Preflight)
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit();
@@ -50,17 +60,48 @@ switch($method) {
 function handleGet($db, $params) {
     try {
         // بناء الاستعلام بناءً على المعلمات
-        if (isset($params['vehicle_id'])) {
-            $query = "SELECT * FROM services WHERE vehicle_id = :vehicle_id ORDER BY date DESC";
-            $stmt = $db->prepare($query);
-            $stmt->bindParam(":vehicle_id", $params['vehicle_id']);
-        } else if (isset($params['id'])) {
-            $query = "SELECT * FROM services WHERE id = :id";
-            $stmt = $db->prepare($query);
-            $stmt->bindParam(":id", $params['id']);
-        } else {
-            $query = "SELECT * FROM services ORDER BY date DESC";
-            $stmt = $db->prepare($query);
+        $query = "SELECT s.* FROM services s";
+        $where = [];
+        $binds = [];
+
+        // الربط مع جدول المركبات إذا كان هناك فلترة حسب العميل
+        if (isset($params['customer_id']) && !empty($params['customer_id'])) {
+            $query = "SELECT s.* FROM services s 
+                      JOIN vehicles v ON s.vehicle_id = v.id";
+            $where[] = "v.customer_id = :customer_id";
+            $binds[":customer_id"] = $params['customer_id'];
+        }
+
+        if (isset($params['vehicle_id']) && !empty($params['vehicle_id'])) {
+            $where[] = "s.vehicle_id = :vehicle_id";
+            $binds[":vehicle_id"] = $params['vehicle_id'];
+        }
+
+        if (isset($params['id']) && !empty($params['id'])) {
+            $where[] = "s.id = :id";
+            $binds[":id"] = $params['id'];
+        }
+
+        if (isset($params['start_date']) && !empty($params['start_date'])) {
+            $where[] = "s.date >= :start_date";
+            $binds[":start_date"] = $params['start_date'];
+        }
+
+        if (isset($params['end_date']) && !empty($params['end_date'])) {
+            $where[] = "s.date <= :end_date";
+            $binds[":end_date"] = $params['end_date'];
+        }
+
+        if (!empty($where)) {
+            $query .= " WHERE " . implode(" AND ", $where);
+        }
+
+        $query .= " ORDER BY s.date DESC";
+        
+        $stmt = $db->prepare($query);
+        
+        foreach ($binds as $key => $val) {
+            $stmt->bindValue($key, $val);
         }
         
         $stmt->execute();
@@ -237,10 +278,10 @@ function handlePut($db, $id, $input) {
         }
 
         if($stmt->execute()) {
-            // إذا تم تحديث التكلفة، نحتاج لإعادة حساب المبلغ المتبقي وحالة الدفع
-            if (isset($input['cost'])) {
+            // إذا تم تحديث التكلفة أو حالة الدفع، نحتاج لإعادة حساب المبالغ
+            if (isset($input['cost']) || isset($input['payment_status'])) {
                 // جلب البيانات المحدثة
-                $getStmt = $db->prepare("SELECT cost, amount_paid FROM services WHERE id = :id");
+                $getStmt = $db->prepare("SELECT cost, amount_paid, payment_status FROM services WHERE id = :id");
                 $getStmt->bindParam(":id", $id);
                 $getStmt->execute();
                 $service = $getStmt->fetch(PDO::FETCH_ASSOC);
@@ -248,18 +289,31 @@ function handlePut($db, $id, $input) {
                 if ($service) {
                     $newCost = floatval($service['cost']);
                     $amountPaid = floatval($service['amount_paid']);
-                    $newRemaining = $newCost - $amountPaid;
+                    $paymentStatus = $service['payment_status'];
                     
-                    if ($newRemaining < 0) $newRemaining = 0;
+                    $newRemaining = $newCost - $amountPaid;
+                    $newStatus = $paymentStatus;
 
-                    $newStatus = 'pending';
-                    if ($newRemaining <= 0) {
+                    // إذا تم تغيير الحالة يدوياً إلى 'مدفوع'
+                    if (isset($input['payment_status']) && $input['payment_status'] === 'paid') {
+                        $amountPaid = $newCost;
+                        $newRemaining = 0;
                         $newStatus = 'paid';
-                    } elseif ($amountPaid > 0) {
-                        $newStatus = 'partial';
+                    } 
+                    // إذا تم تغيير التكلفة، نعيد حساب الحالة
+                    elseif (isset($input['cost'])) {
+                        if ($newRemaining <= 0) {
+                            $newRemaining = 0;
+                            $newStatus = 'paid';
+                        } elseif ($amountPaid > 0) {
+                            $newStatus = 'partial';
+                        } else {
+                            $newStatus = 'pending';
+                        }
                     }
 
-                    $updateStatusStmt = $db->prepare("UPDATE services SET remaining_amount = :rem, payment_status = :status WHERE id = :id");
+                    $updateStatusStmt = $db->prepare("UPDATE services SET amount_paid = :paid, remaining_amount = :rem, payment_status = :status WHERE id = :id");
+                    $updateStatusStmt->bindParam(":paid", $amountPaid);
                     $updateStatusStmt->bindParam(":rem", $newRemaining);
                     $updateStatusStmt->bindParam(":status", $newStatus);
                     $updateStatusStmt->bindParam(":id", $id);

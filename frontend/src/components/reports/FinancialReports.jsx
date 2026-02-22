@@ -14,6 +14,11 @@ const FinancialReports = ({ t, isRtl }) => {
   const [purchasePayments, setPurchasePayments] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [purchaseInvoices, setPurchaseInvoices] = useState([]);
+  const [employeePayments, setEmployeePayments] = useState([]);
+  const [dateFilters, setDateFilters] = useState({
+    start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0]
+  });
 
   useEffect(() => {
     fetchFundStats();
@@ -33,14 +38,15 @@ const FinancialReports = ({ t, isRtl }) => {
 
   const fetchAllData = async () => {
     try {
-      const [sData, pData, cData, vData, ppData, supData, piData] = await Promise.all([
+      const [sData, pData, cData, vData, ppData, supData, piData, epData] = await Promise.all([
         apiService.services.getAll(),
         apiService.payments.getAll(),
         apiService.customers.getAll(),
         apiService.vehicles.getAll(),
         apiService.purchasePayments.getAll(),
         apiService.suppliers.getAll(),
-        apiService.invoices.getAll()
+        apiService.invoices.getAll(),
+        apiService.employees.getEmployeePayments()
       ]);
       setServices(sData);
       setPayments(pData);
@@ -49,6 +55,7 @@ const FinancialReports = ({ t, isRtl }) => {
       setPurchasePayments(ppData);
       setSuppliers(supData);
       setPurchaseInvoices(piData);
+      setEmployeePayments(Array.isArray(epData) ? epData : []);
     } catch (error) {
       console.error("Error fetching report data:", error);
     }
@@ -69,9 +76,29 @@ const FinancialReports = ({ t, isRtl }) => {
     let content = "";
     let totalAmount = 0;
 
+    const filteredServices = services.filter(s => {
+        const d = new Date(s.date);
+        return d >= new Date(dateFilters.start_date) && d <= new Date(dateFilters.end_date);
+    });
+
+    const filteredPayments = payments.filter(p => {
+        const d = new Date(p.payment_date);
+        return d >= new Date(dateFilters.start_date) && d <= new Date(dateFilters.end_date);
+    });
+
+    const filteredPurchasePayments = purchasePayments.filter(p => {
+        const d = new Date(p.payment_date);
+        return d >= new Date(dateFilters.start_date) && d <= new Date(dateFilters.end_date);
+    });
+
+    const filteredEmployeePayments = employeePayments.filter(p => {
+        const d = new Date(p.payment_date);
+        return d >= new Date(dateFilters.start_date) && d <= new Date(dateFilters.end_date) && p.status === 'paid';
+    });
+
     if (reportType === 'invoices') {
       title = t.invoicesReport;
-      const rows = services.map(s => {
+      const rows = filteredServices.map(s => {
         const v = vehicles.find(v => v.id == s.vehicle_id);
         const c = v ? customers.find(c => c.id == v.customer_id) : null;
         totalAmount += parseFloat(s.cost || 0);
@@ -106,7 +133,7 @@ const FinancialReports = ({ t, isRtl }) => {
       `;
     } else if (reportType === 'receipts') {
       title = t.receiptsReport;
-      const rows = payments.map(p => {
+      const rows = filteredPayments.map(p => {
         const s = services.find(s => s.id == p.service_id);
         const v = s ? vehicles.find(v => v.id == s.vehicle_id) : null;
         const c = v ? customers.find(c => c.id == v.customer_id) : null;
@@ -141,7 +168,8 @@ const FinancialReports = ({ t, isRtl }) => {
       `;
     } else if (reportType === 'payments') {
       title = t.paymentsReport;
-      const rows = purchasePayments.map(p => {
+      
+      const purchaseRows = filteredPurchasePayments.map(p => {
         const inv = purchaseInvoices.find(i => i.id == p.invoice_id);
         const sup = inv ? suppliers.find(s => s.id == inv.supplier_id) : null;
         totalAmount += parseFloat(p.amount || 0);
@@ -150,9 +178,100 @@ const FinancialReports = ({ t, isRtl }) => {
             <td>${p.id}</td>
             <td>${p.payment_date}</td>
             <td>${sup ? sup.name : '-'}</td>
+            <td>${isRtl ? 'مورد' : 'Supplier'}</td>
             <td>${inv ? inv.invoice_number : '-'}</td>
             <td>$${parseFloat(p.amount).toFixed(2)}</td>
-            <td>${p.receipt_number || '-'}</td>
+          </tr>
+        `;
+      });
+
+      const employeeRows = filteredEmployeePayments.map(p => {
+        totalAmount += parseFloat(p.amount || 0);
+        return `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.payment_date}</td>
+            <td>${p.employee_name}</td>
+            <td>${isRtl ? 'موظف' : 'Employee'} (${p.payment_type})</td>
+            <td>-</td>
+            <td>$${parseFloat(p.amount).toFixed(2)}</td>
+          </tr>
+        `;
+      });
+
+      content = `
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
+          <thead>
+            <tr style="background-color: #f2f2f2;">
+              <th>ID</th><th>${t.date}</th><th>${isRtl ? 'الجهة' : 'Entity'}</th><th>${t.type || 'Type'}</th><th>${t.invoiceNumber}</th><th>${t.amount}</th>
+            </tr>
+          </thead>
+          <tbody>${purchaseRows.join('')}${employeeRows.join('')}</tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5" style="text-align: ${isRtl ? 'left' : 'right'}"><strong>${t.totalAmount}</strong></td>
+              <td><strong>$${totalAmount.toFixed(2)}</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      `;
+    } else if (reportType === 'employee_statements') {
+      title = t.employeeStatements || (isRtl ? 'كشوفات الموظفين' : 'Employee Statements');
+      
+      const empStats = filteredEmployeePayments.reduce((acc, p) => {
+        if (!acc[p.employee_id]) {
+          acc[p.employee_id] = { name: p.employee_name, pos: p.employee_position, salary: 0, advance: 0, deduction: 0, total: 0 };
+        }
+        const amt = parseFloat(p.amount || 0);
+        if (p.payment_type === 'salary') acc[p.employee_id].salary += amt;
+        else if (p.payment_type === 'advance') acc[p.employee_id].advance += amt;
+        else if (p.payment_type === 'deduction') acc[p.employee_id].deduction += amt;
+        acc[p.employee_id].total += amt;
+        totalAmount += amt;
+        return acc;
+      }, {});
+
+      const rows = Object.values(empStats).map(s => `
+        <tr>
+          <td>${s.name}</td>
+          <td>${s.pos}</td>
+          <td>$${s.salary.toFixed(2)}</td>
+          <td>$${s.advance.toFixed(2)}</td>
+          <td>$${s.deduction.toFixed(2)}</td>
+          <td style="font-weight: bold;">$${s.total.toFixed(2)}</td>
+        </tr>
+      `).join('');
+
+      content = `
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
+          <thead>
+            <tr style="background-color: #f2f2f2;">
+              <th>${t.employee}</th><th>${t.position}</th><th>${t.salary}</th><th>${t.advances}</th><th>${t.deductions}</th><th>${t.totalAmount}</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5" style="text-align: ${isRtl ? 'left' : 'right'}"><strong>${t.totalAmount}</strong></td>
+              <td><strong>$${totalAmount.toFixed(2)}</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      `;
+    } else if (reportType === 'unpaid') {
+      title = t.unpaidServices || 'Unpaid Services';
+      const rows = filteredServices.filter(s => s.payment_status !== 'paid').map(s => {
+        const v = vehicles.find(v => v.id == s.vehicle_id);
+        const c = v ? customers.find(c => c.id == v.customer_id) : null;
+        totalAmount += parseFloat(s.remaining_amount || 0);
+        return `
+          <tr>
+            <td>${s.id}</td>
+            <td>${s.date}</td>
+            <td>${c ? c.name : '-'}</td>
+            <td>${v ? `${v.make} ${v.model}` : '-'}</td>
+            <td>$${parseFloat(s.cost).toFixed(2)}</td>
+            <td>$${parseFloat(s.remaining_amount).toFixed(2)}</td>
           </tr>
         `;
       }).join('');
@@ -161,14 +280,87 @@ const FinancialReports = ({ t, isRtl }) => {
         <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
           <thead>
             <tr style="background-color: #f2f2f2;">
-              <th>ID</th><th>${t.date}</th><th>${isRtl ? 'المورد' : 'Supplier'}</th><th>${t.invoiceNumber}</th><th>${t.amount}</th><th>${t.receiptNumber}</th>
+              <th>ID</th><th>${t.date}</th><th>${t.customer}</th><th>${t.vehicle}</th><th>${t.cost}</th><th>${t.remaining}</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5" style="text-align: ${isRtl ? 'left' : 'right'}"><strong>${t.totalRemaining}</strong></td>
+              <td><strong>$${totalAmount.toFixed(2)}</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      `;
+    } else if (reportType === 'technicians') {
+      title = t.technicianReport || 'Technicians Report';
+      
+      const techStats = filteredServices.reduce((acc, s) => {
+        const tech = s.technician || (isRtl ? 'غير محدد' : 'Unassigned');
+        if (!acc[tech]) acc[tech] = { count: 0, total: 0 };
+        acc[tech].count++;
+        acc[tech].total += parseFloat(s.cost || 0);
+        return acc;
+      }, {});
+
+      const rows = Object.entries(techStats).map(([tech, stats]) => {
+        return `
+          <tr>
+            <td>${tech}</td>
+            <td>${stats.count}</td>
+            <td>$${stats.total.toFixed(2)}</td>
+          </tr>
+        `;
+      }).join('');
+
+      content = `
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
+          <thead>
+            <tr style="background-color: #f2f2f2;">
+              <th>${t.technician}</th><th>${t.servicesCount}</th><th>${t.totalRevenue}</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    } else if (reportType === 'suppliers') {
+      title = t.suppliersReport || 'Suppliers Report';
+      const filteredInvoices = purchaseInvoices.filter(inv => {
+        const d = new Date(inv.invoice_date || inv.date);
+        return d >= new Date(dateFilters.start_date) && d <= new Date(dateFilters.end_date);
+      });
+
+      const rows = filteredInvoices.map(inv => {
+        const sup = suppliers.find(s => s.id == inv.supplier_id);
+        const amount = parseFloat(inv.amount || 0);
+        const paid = parseFloat(inv.paid_amount || 0);
+        totalAmount += amount;
+        return `
+          <tr>
+            <td>${inv.id}</td>
+            <td>${inv.invoice_date || inv.date}</td>
+            <td>${inv.invoice_number}</td>
+            <td>${sup ? sup.name : '-'}</td>
+            <td>$${amount.toFixed(2)}</td>
+            <td>$${paid.toFixed(2)}</td>
+            <td>$${(amount - paid).toFixed(2)}</td>
+            <td>${inv.status}</td>
+          </tr>
+        `;
+      }).join('');
+
+      content = `
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px;">
+          <thead>
+            <tr style="background-color: #f2f2f2;">
+              <th>ID</th><th>${t.date}</th><th>${t.invoiceNumber}</th><th>${isRtl ? 'المورد' : 'Supplier'}</th><th>${t.amount}</th><th>${t.paid}</th><th>${t.remaining}</th><th>${t.status}</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
           <tfoot>
             <tr>
               <td colspan="4" style="text-align: ${isRtl ? 'left' : 'right'}"><strong>${t.totalAmount}</strong></td>
-              <td colspan="2"><strong>$${totalAmount.toFixed(2)}</strong></td>
+              <td colspan="4"><strong>$${totalAmount.toFixed(2)}</strong></td>
             </tr>
           </tfoot>
         </table>
@@ -191,7 +383,7 @@ const FinancialReports = ({ t, isRtl }) => {
         <div class="header">
            <img src="${t.logo}" style="height:80px; margin-bottom:10px;" onerror="this.style.display='none';">
            <h2>${title}</h2>
-           <p>${new Date().toLocaleDateString()}</p>
+           <p>${t.from}: ${dateFilters.start_date} ${t.to}: ${dateFilters.end_date}</p>
         </div>
         ${content}
         <script>window.onload = function() { window.print(); }</script>
@@ -205,8 +397,24 @@ const FinancialReports = ({ t, isRtl }) => {
   };
 
   const handlePrintFundReport = () => {
-    const totalIncome = payments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-    const totalExpense = purchasePayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+    const filteredPayments = payments.filter(p => {
+        const d = new Date(p.payment_date);
+        return d >= new Date(dateFilters.start_date) && d <= new Date(dateFilters.end_date);
+    });
+
+    const filteredPurchasePayments = purchasePayments.filter(p => {
+        const d = new Date(p.payment_date);
+        return d >= new Date(dateFilters.start_date) && d <= new Date(dateFilters.end_date);
+    });
+
+    const filteredEmployeePayments = employeePayments.filter(p => {
+        const d = new Date(p.payment_date);
+        return d >= new Date(dateFilters.start_date) && d <= new Date(dateFilters.end_date) && p.status === 'paid';
+    });
+
+    const totalIncome = filteredPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+    const totalExpense = filteredPurchasePayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) + 
+                         filteredEmployeePayments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
     const currentBalance = totalIncome - totalExpense;
     
     const fundReportContent = `
@@ -232,7 +440,7 @@ const FinancialReports = ({ t, isRtl }) => {
           <div class="header">
               <img src="${t.logo}" style="height:80px; margin-bottom:10px;" onerror="this.style.display='none';">
               <h2>${isRtl ? 'تقرير الصندوق الرئيسي' : 'Main Fund Report'}</h2>
-              <p>${new Date().toLocaleDateString()}</p>
+              <p>${t.from}: ${dateFilters.start_date} ${t.to}: ${dateFilters.end_date}</p>
           </div>
           
           <div class="stat-grid">
@@ -260,7 +468,11 @@ const FinancialReports = ({ t, isRtl }) => {
                   </tr>
               </thead>
               <tbody>
-                  ${[...payments.map(p => ({...p, type: 'in'})), ...purchasePayments.map(p => ({...p, type: 'out'}))]
+                  ${[
+                    ...filteredPayments.map(p => ({...p, type: 'in'})), 
+                    ...filteredPurchasePayments.map(p => ({...p, type: 'out'})),
+                    ...filteredEmployeePayments.map(p => ({...p, type: 'out', is_payroll: true}))
+                  ]
                     .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))
                     .slice(0, 50)
                     .map(p => {
@@ -270,6 +482,8 @@ const FinancialReports = ({ t, isRtl }) => {
                             const v = s ? vehicles.find(veh => veh.id == s.vehicle_id) : null;
                             const c = v ? customers.find(cust => cust.id == v.customer_id) : null;
                             desc = `${isRtl ? 'مقبوضات من' : 'Receipt from'} ${c ? c.name : (isRtl ? 'عميل' : 'Customer')}`;
+                        } else if (p.is_payroll) {
+                            desc = `${isRtl ? 'رواتب/سلف موظف:' : 'Payroll/Advance:'} ${p.employee_name}`;
                         } else {
                             const inv = purchaseInvoices.find(i => i.id == p.invoice_id);
                             const sup = inv ? suppliers.find(s => s.id == inv.supplier_id) : null;
@@ -299,16 +513,18 @@ const FinancialReports = ({ t, isRtl }) => {
   const downloadReport = (type, format = 'excel') => {
     if (format === 'pdf') {
       if (type === 'general') handlePrintFinancialReport('invoices');
-      else if (type === 'financial') handlePrintFinancialReport('receipts');
+      else if (type === 'receipts') handlePrintFinancialReport('receipts');
       else if (type === 'payments') handlePrintFinancialReport('payments');
+      else if (type === 'unpaid') handlePrintFinancialReport('unpaid');
+      else if (type === 'technicians') handlePrintFinancialReport('technicians');
+      else if (type === 'employee_statements') handlePrintFinancialReport('employee_statements');
       else if (type === 'fund') handlePrintFundReport();
       return;
     }
     const langParam = isRtl ? 'ar' : 'en';
-    let url = `http://localhost/car-garage/backend/api/export_excel.php?lang=${langParam}&report_type=${type}`;
+    const backendUrl = 'http://localhost/car-garage/backend/api';
+    let url = `${backendUrl}/export_excel.php?lang=${langParam}&report_type=${type}&start_date=${dateFilters.start_date}&end_date=${dateFilters.end_date}`;
     
-    // Add date filters if available (assuming you might add date pickers later, or from current context)
-    // For now, let's just make sure the URL is correctly formed.
     window.open(url, '_blank');
   };
 
@@ -316,6 +532,34 @@ const FinancialReports = ({ t, isRtl }) => {
     <div className="p-4">
       <h2 className="text-xl font-bold mb-6">{t.financialManagement} & {t.reports}</h2>
       
+      {/* Date Filters */}
+      <div className="bg-white p-6 rounded-lg shadow-md mb-6 flex flex-wrap gap-4 items-end">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-bold text-gray-500 uppercase">{t.fromDate}</label>
+          <input 
+            type="date" 
+            className="border p-2 rounded outline-none focus:ring-2 focus:ring-blue-500" 
+            value={dateFilters.start_date}
+            onChange={(e) => setDateFilters({...dateFilters, start_date: e.target.value})}
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-bold text-gray-500 uppercase">{t.toDate}</label>
+          <input 
+            type="date" 
+            className="border p-2 rounded outline-none focus:ring-2 focus:ring-blue-500" 
+            value={dateFilters.end_date}
+            onChange={(e) => setDateFilters({...dateFilters, end_date: e.target.value})}
+          />
+        </div>
+        <button 
+          onClick={fetchAllData}
+          className="btn btn-primary h-10 px-6"
+        >
+          {t.updateData || 'تحديث البيانات'}
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* بطاقة الصندوق الرئيسي */}
         <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
@@ -375,6 +619,30 @@ const FinancialReports = ({ t, isRtl }) => {
                     <div className="flex gap-2">
                         <button onClick={() => downloadReport('payments', 'pdf')} className="bg-red-600 text-white p-2 rounded text-xs flex-1">PDF</button>
                         <button onClick={() => downloadReport('payments', 'excel')} className="bg-green-600 text-white p-2 rounded text-xs flex-1">Excel</button>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-gray-600">{t.unpaidServices || 'Unpaid Services'}</span>
+                    <div className="flex gap-2">
+                        <button onClick={() => downloadReport('unpaid', 'pdf')} className="bg-red-600 text-white p-2 rounded text-xs flex-1">PDF</button>
+                        <button onClick={() => downloadReport('unpaid', 'excel')} className="bg-green-600 text-white p-2 rounded text-xs flex-1">Excel</button>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-gray-600">{t.technicianReport || 'Technician Report'}</span>
+                    <div className="flex gap-2">
+                        <button onClick={() => downloadReport('technicians', 'pdf')} className="bg-red-600 text-white p-2 rounded text-xs flex-1">PDF</button>
+                        <button onClick={() => downloadReport('technicians', 'excel')} className="bg-green-600 text-white p-2 rounded text-xs flex-1">Excel</button>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-gray-600">{t.employeeStatements || (isRtl ? 'كشوفات الموظفين' : 'Employee Statements')}</span>
+                    <div className="flex gap-2">
+                        <button onClick={() => downloadReport('employee_statements', 'pdf')} className="bg-red-600 text-white p-2 rounded text-xs flex-1">PDF</button>
+                        <button onClick={() => downloadReport('employee_statements', 'excel')} className="bg-green-600 text-white p-2 rounded text-xs flex-1">Excel</button>
                     </div>
                 </div>
             </div>

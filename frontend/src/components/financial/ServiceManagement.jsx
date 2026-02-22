@@ -13,21 +13,46 @@ const ServiceManagement = ({ t, isRtl, setPrintData, permissions }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedService, setSelectedService] = useState(null);
+  const [serviceTypes, setServiceTypes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({ customer_id: '', start_date: '', end_date: '' });
 
   useEffect(() => {
     fetchServices();
     fetchVehicles();
     fetchCustomers();
+    fetchServiceTypes();
   }, []);
 
-  const fetchServices = async () => {
+  const fetchServiceTypes = async () => {
     try {
-      const data = await apiService.services.getAll();
+      const data = await apiService.serviceTypes.getAll();
+      setServiceTypes(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching service types:", error);
+    }
+  };
+
+  const fetchServices = async (currentFilters = filters) => {
+    try {
+      const data = await apiService.services.getAll(currentFilters);
       setServices(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching services:", error);
     }
+  };
+
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    const newFilters = { ...filters, [name]: value };
+    setFilters(newFilters);
+    fetchServices(newFilters);
+  };
+
+  const clearFilters = () => {
+    const defaultFilters = { customer_id: '', start_date: '', end_date: '' };
+    setFilters(defaultFilters);
+    fetchServices(defaultFilters);
   };
 
   const fetchVehicles = async () => {
@@ -64,6 +89,12 @@ const ServiceManagement = ({ t, isRtl, setPrintData, permissions }) => {
   const getServiceTypeLabel = (type) => {
     if (!type) return '-';
     
+    // Check if it exists in dynamic service types
+    const dynamicType = serviceTypes.find(st => st.name_en === type);
+    if (dynamicType) {
+        return isRtl ? dynamicType.name_ar : dynamicType.name_en;
+    }
+
     // Mapping for both new internal keys and legacy Arabic strings
     const mapping = {
       'oil_change': t.oilChange,
@@ -259,14 +290,61 @@ const ServiceManagement = ({ t, isRtl, setPrintData, permissions }) => {
         )}
       </div>
 
-      <div className="mb-6">
-        <input 
-          type="text" 
-          placeholder={t.searchPlaceholder} 
-          className="search-input w-full md:w-1/3"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-bold text-gray-500 uppercase">{t.customer}</label>
+            <select 
+              name="customer_id"
+              className="border p-2 rounded outline-none focus:ring-2 focus:ring-blue-500"
+              value={filters.customer_id}
+              onChange={handleFilterChange}
+            >
+              <option value="">{t.all}</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-bold text-gray-500 uppercase">{t.fromDate}</label>
+            <input 
+              type="date" 
+              name="start_date"
+              className="border p-2 rounded outline-none focus:ring-2 focus:ring-blue-500" 
+              value={filters.start_date}
+              onChange={handleFilterChange}
+            />
+          </div>
+          
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-bold text-gray-500 uppercase">{t.toDate}</label>
+            <input 
+              type="date" 
+              name="end_date"
+              className="border p-2 rounded outline-none focus:ring-2 focus:ring-blue-500" 
+              value={filters.end_date}
+              onChange={handleFilterChange}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <button 
+              onClick={clearFilters}
+              className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 font-medium"
+            >
+              {t.clearFilters || (isRtl ? 'مسح الفلاتر' : 'Clear Filters')}
+            </button>
+            <input 
+              type="text" 
+              placeholder={t.searchPlaceholder} 
+              className="search-input flex-1"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="bg-white shadow-md rounded-2xl overflow-hidden border border-gray-100">

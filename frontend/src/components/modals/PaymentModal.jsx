@@ -28,7 +28,7 @@ function PaymentModal({ isOpen, onClose, onSuccess, service, t, isRtl, vehicles,
       });
     } else if (service) {
       setPaymentData({
-        amount: parseFloat(service.remaining_amount) || 0,
+        amount: parseFloat(service.remaining_amount ?? service.cost) || 0,
         paymentMethod: 'cash',
         transactionId: '',
         notes: ''
@@ -55,7 +55,7 @@ function PaymentModal({ isOpen, onClose, onSuccess, service, t, isRtl, vehicles,
         service_id: service?.id || selectedPayment?.service_id,
         amount: paymentData.amount,
         payment_method: paymentData.paymentMethod,
-        transactionId: paymentData.paymentMethod !== 'cash' ? paymentData.transactionId : '',
+        transaction_id: paymentData.paymentMethod !== 'cash' ? paymentData.transactionId : '',
         notes: paymentData.notes,
         payment_date: selectedPayment?.payment_date || new Date().toISOString().split('T')[0]
       };
@@ -81,6 +81,41 @@ function PaymentModal({ isOpen, onClose, onSuccess, service, t, isRtl, vehicles,
     }
   };
 
+  const handleDeletePayment = async (id) => {
+    if (!window.confirm(t.confirmDelete || (isRtl ? 'هل أنت متأكد من حذف هذه الدفعة؟' : 'Are you sure you want to delete this payment?'))) return;
+
+    try {
+      const result = await apiService.payments.delete(id);
+      if (result.success) {
+        fetchPayments();
+        onSuccess();
+        alert(isRtl ? '✅ تم حذف الدفعة بنجاح' : '✅ Payment deleted successfully');
+      } else {
+        alert(`❌ ${t.error}: ` + result.message);
+      }
+    } catch (error) {
+      console.error(error);
+      alert(t.connectionError);
+    }
+  };
+
+  const getServiceTypeLabel = (type) => {
+    if (!type) return '-';
+    const mapping = {
+      'oil_change': t.oilChange,
+      'brake_service': t.brakeService,
+      'tire_rotation': t.tireRotation,
+      'engine_repair': t.engineRepair,
+      'other': t.other,
+      'تغيير الزيت': t.oilChange,
+      'خدمة الفرامل': t.brakeService,
+      'تدوير الإطارات': t.tireRotation,
+      'إصلاح المحرك': t.engineRepair,
+      'أخرى': t.other
+    };
+    return mapping[type] || type;
+  };
+
   const handlePrintReceipt = (paymentId) => {
     const payment = payments.find(p => p.id === paymentId);
     if (!payment || !service) return;
@@ -88,23 +123,6 @@ function PaymentModal({ isOpen, onClose, onSuccess, service, t, isRtl, vehicles,
     const vehicle = vehicles ? vehicles.find(v => v.id === service.vehicle_id) : null;
     const customer = (vehicle && customers) ? customers.find(c => c.id === vehicle.customer_id) : null;
     const language = isRtl ? 'ar' : 'en';
-
-    const getServiceTypeLabel = (type) => {
-        if (!type) return '-';
-        const mapping = {
-          'oil_change': t.oilChange,
-          'brake_service': t.brakeService,
-          'tire_rotation': t.tireRotation,
-          'engine_repair': t.engineRepair,
-          'other': t.other,
-          'تغيير الزيت': t.oilChange,
-          'خدمة الفرامل': t.brakeService,
-          'تدوير الإطارات': t.tireRotation,
-          'إصلاح المحرك': t.engineRepair,
-          'أخرى': t.other
-        };
-        return mapping[type] || type;
-    };
 
     const receiptContent = `
       <!DOCTYPE html>
@@ -301,13 +319,21 @@ function PaymentModal({ isOpen, onClose, onSuccess, service, t, isRtl, vehicles,
             {!selectedPayment && service && (
               <div className="card" style={{padding: '20px', background: '#f0f9ff', borderRadius: '16px', marginBottom: '24px', border: '1px solid #bae6fd'}}>
                 <p className="mb-2"><strong>{t.serviceType}:</strong> <span className="text-blue-700">{getServiceTypeLabel(service.type)}</span></p>
-                <p><strong>{t.remaining}:</strong> <span className="text-xl font-bold text-blue-700">${service.remaining_amount || service.cost}</span></p>
+                <p><strong>{t.remaining}:</strong> <span className="text-xl font-bold text-blue-700">${service.remaining_amount ?? service.cost}</span></p>
               </div>
             )}
             <form onSubmit={handlePayment} className="space-y-4">
               <div className="form-group">
                 <label className="form-label">{t.amountToPay || t.amount} ($)</label>
-                <input type="number" required min="0.01" step="0.01" className="form-input font-bold text-lg" value={paymentData.amount} onChange={(e) => setPaymentData({...paymentData, amount: parseFloat(e.target.value)})} />
+                <input 
+                  type="number" 
+                  required 
+                  min="0.01" 
+                  step="0.01" 
+                  className="form-input font-bold text-lg" 
+                  value={paymentData.amount} 
+                  onChange={(e) => setPaymentData({...paymentData, amount: parseFloat(e.target.value) || 0})} 
+                />
               </div>
               <div className="form-group">
                 <label className="form-label">{t.paymentMethod}</label>
@@ -359,6 +385,13 @@ function PaymentModal({ isOpen, onClose, onSuccess, service, t, isRtl, vehicles,
                         <td className="py-4 text-sm">
                           <div className="flex gap-2">
                             <button onClick={() => setSelectedPayment(p)} className="action-btn edit" title={t.edit}>✏️</button>
+                            <button 
+                              onClick={() => handleDeletePayment(p.id)} 
+                              className="action-btn delete" 
+                              title={t.delete}
+                            >
+                              🗑️
+                            </button>
                             <button 
                               onClick={() => handlePrintReceipt(p.id)} 
                               className="action-btn"

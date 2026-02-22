@@ -1,2 +1,9 @@
-RewriteEngine On 
-RewriteRule api/([/]+)/?$ api/$1.php [L] 
+RewriteEngine On
+
+# منع الوصول المباشر للمجلدات
+Options -Indexes
+
+# توجيه طلبات API إلى ملفات php المقابلة
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^api/([a-zA-Z0-9_]+)/?$ api/$1.php [QSA,L]

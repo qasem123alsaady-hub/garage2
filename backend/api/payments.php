@@ -1,687 +1,315 @@
 <?php
-header("Access-Control-Allow-Origin: http://localhost:3000");
+/**
+ * API Payments - معالجة المدفوعات
+ * الإصدار المحدث مع دعم CORS الكامل
+ */
+
+// 1. إعداد CORS بشكل ديناميكي وقوي
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+    header("Access-Control-Max-Age: 86400");
+} else {
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+}
+
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
 
-// إظهار جميع الأخطاء
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-// معالجة طلبات OPTIONS
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+// 2. معالجة طلبات OPTIONS (Preflight) فوراً
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-// دالة آمنة للتصحيح
+// 3. إعداد تصحيح الأخطاء والسجلات
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 function log_debug($message) {
     $log_file = __DIR__ . '/debug.log';
     $timestamp = date('Y-m-d H:i:s');
     $log_message = "[$timestamp] $message\n";
-    
-    if (is_writable(__DIR__) || (file_exists($log_file) && is_writable($log_file))) {
-        file_put_contents($log_file, $log_message, FILE_APPEND | LOCK_EX);
-    } else {
-        error_log($log_message);
-    }
+    @file_put_contents($log_file, $log_message, FILE_APPEND | LOCK_EX);
 }
 
+// 4. الاتصال بقاعدة البيانات
 include_once '../config/database.php';
 
 try {
     $database = new Database();
     $db = $database->getConnection();
-    
-    if (!$db) {
-        throw new Exception("فشل الاتصال بقاعدة البيانات");
-    }
-    
+    if (!$db) throw new Exception("Database connection failed");
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode([
-        "message" => "Database connection failed", 
-        "success" => false, 
-        "error" => $e->getMessage()
-    ]);
-    exit;
+    echo json_encode(["success" => false, "message" => $e->getMessage()]);
+    exit();
 }
 
+// 5. معالجة الطلبات
 $method = $_SERVER['REQUEST_METHOD'];
 $input = json_decode(file_get_contents("php://input"), true);
 
-log_debug("=== PAYMENTS REQUEST ===");
-log_debug("Method: $method");
-log_debug("GET Parameters: " . print_r($_GET, true));
-log_debug("Input Data: " . print_r($input, true));
+log_debug("New Request: $method " . ($_SERVER['REQUEST_URI'] ?? ''));
 
 switch($method) {
     case 'GET':
-        getPayments($db, $_GET);
+        handleGet($db);
         break;
     case 'POST':
         if (isset($input['action']) && $input['action'] === 'bulk') {
-            createBulkPayment($db, $input);
+            handleBulkPost($db, $input);
         } else {
-            createPayment($db, $input);
+            handleSinglePost($db, $input);
         }
         break;
     case 'PUT':
-        updatePayment($db, $input);
+        handlePut($db, $input);
         break;
     case 'DELETE':
-        deletePayment($db, $input);
+        handleDelete($db, $input);
         break;
     default:
         http_response_code(405);
-        echo json_encode(["message" => "Method not allowed", "success" => false]);
+        echo json_encode(["success" => false, "message" => "Method not allowed"]);
         break;
 }
 
-function createBulkPayment($db, $input) {
+// --- دوال المعالجة ---
+
+function handleGet($db) {
     try {
-        log_debug("CREATE Bulk Payment Input: " . print_r($input, true));
-
-        if (!isset($input['vehicle_id']) || !isset($input['amount'])) {
-            http_response_code(400);
-            echo json_encode(["message" => "Vehicle ID and amount are required", "success" => false]);
-            return;
-        }
-
-        $vehicle_id = $input['vehicle_id'];
-        $total_payment_amount = floatval($input['amount']);
-        $payment_method = $input['payment_method'] ?? 'cash';
-        $transaction_id = $input['transaction_id'] ?? '';
-        $notes = $input['notes'] ?? '';
-        $payment_date = date('Y-m-d H:i:s');
-
-        if ($total_payment_amount <= 0) {
-            throw new Exception("Payment amount must be greater than 0");
-        }
-
-        // 1. جلب جميع الخدمات المعلقة لهذه المركبة
-        $query = "SELECT * FROM services 
-                  WHERE vehicle_id = :vehicle_id 
-                  AND payment_status != 'paid' 
-                  ORDER BY date ASC, created_at ASC";
-        $stmt = $db->prepare($query);
-        $stmt->bindParam(":vehicle_id", $vehicle_id);
-        $stmt->execute();
-        $pending_services = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        if (empty($pending_services)) {
-            echo json_encode(["message" => "No pending services found for this vehicle", "success" => false]);
-            return;
-        }
-
-        $db->beginTransaction();
-
-        $remaining_to_distribute = $total_payment_amount;
-        $processed_services = [];
-
-        foreach ($pending_services as $service) {
-            if ($remaining_to_distribute <= 0) break;
-
-            $service_id = $service['id'];
-            $service_cost = floatval($service['cost']);
-            $already_paid = floatval($service['amount_paid']);
-            $service_remaining = $service_cost - $already_paid;
-
-            if ($service_remaining <= 0) continue;
-
-            // المبلغ الذي سيتم دفعه لهذه الخدمة
-            $payment_for_this_service = min($remaining_to_distribute, $service_remaining);
-            
-            // إضافة سجل الدفعة
-            $paymentId = uniqid('pay_');
-            $pay_query = "INSERT INTO payments SET 
-                          id = :id, service_id = :service_id, amount = :amount, 
-                          payment_method = :payment_method, transaction_id = :transaction_id, 
-                          notes = :notes, payment_date = :payment_date";
-            $pay_stmt = $db->prepare($pay_query);
-            $pay_stmt->bindParam(":id", $paymentId);
-            $pay_stmt->bindParam(":service_id", $service_id);
-            $pay_stmt->bindParam(":amount", $payment_for_this_service);
-            $pay_stmt->bindParam(":payment_method", $payment_method);
-            $pay_stmt->bindParam(":transaction_id", $transaction_id);
-            $pay_stmt->bindParam(":notes", $notes);
-            $pay_stmt->bindParam(":payment_date", $payment_date);
-            $pay_stmt->execute();
-
-            // تحديث الخدمة
-            $new_amount_paid = $already_paid + $payment_for_this_service;
-            $new_remaining = $service_cost - $new_amount_paid;
-            $new_status = ($new_remaining <= 0) ? 'paid' : 'partial';
-
-            $update_query = "UPDATE services SET 
-                             amount_paid = :amount_paid, 
-                             remaining_amount = :remaining_amount, 
-                             payment_status = :payment_status,
-                             payment_method = :payment_method,
-                             transaction_id = :transaction_id
-                             WHERE id = :service_id";
-            $update_stmt = $db->prepare($update_query);
-            $update_stmt->bindParam(":amount_paid", $new_amount_paid);
-            $update_stmt->bindParam(":remaining_amount", $new_remaining);
-            $update_stmt->bindParam(":payment_status", $new_status);
-            $update_stmt->bindParam(":payment_method", $payment_method);
-            $update_stmt->bindParam(":transaction_id", $transaction_id);
-            $update_stmt->bindParam(":service_id", $service_id);
-            $update_stmt->execute();
-
-            $processed_services[] = [
-                "service_id" => $service_id,
-                "amount_applied" => $payment_for_this_service,
-                "new_status" => $new_status
-            ];
-
-            $remaining_to_distribute -= $payment_for_this_service;
-        }
-
-        $db->commit();
-
-        echo json_encode([
-            "message" => "Bulk payment processed successfully",
-            "success" => true,
-            "applied_amount" => $total_payment_amount - $remaining_to_distribute,
-            "refund_amount" => $remaining_to_distribute,
-            "processed_count" => count($processed_services),
-            "details" => $processed_services
-        ]);
-
-    } catch (Exception $e) {
-        if ($db->inTransaction()) $db->rollBack();
-        log_debug("Bulk Payment Error: " . $e->getMessage());
-        http_response_code(500);
-        echo json_encode(["message" => $e->getMessage(), "success" => false]);
-    }
-}
-
-
-function getPayments($db, $params) {
-    try {
-        $service_id = isset($params['service_id']) ? $params['service_id'] : null;
-        $vehicle_id = isset($params['vehicle_id']) ? $params['vehicle_id'] : null;
+        $service_id = $_GET['service_id'] ?? null;
+        $vehicle_id = $_GET['vehicle_id'] ?? null;
         
         $query = "SELECT p.*, s.type as service_type, s.vehicle_id 
                   FROM payments p 
                   JOIN services s ON p.service_id = s.id";
         
-        $where_clauses = [];
-        $query_params = [];
+        $where = [];
+        $params = [];
 
         if ($service_id && $service_id !== 'all') {
-            $where_clauses[] = "p.service_id = :service_id";
-            $query_params[':service_id'] = $service_id;
+            $where[] = "p.service_id = :sid";
+            $params[':sid'] = $service_id;
         }
-
         if ($vehicle_id && $vehicle_id !== 'all') {
-            $where_clauses[] = "s.vehicle_id = :vehicle_id";
-            $query_params[':vehicle_id'] = $vehicle_id;
+            $where[] = "s.vehicle_id = :vid";
+            $params[':vid'] = $vehicle_id;
         }
 
-        if (!empty($where_clauses)) {
-            $query .= " WHERE " . implode(" AND ", $where_clauses);
-        }
-
+        if (!empty($where)) $query .= " WHERE " . implode(" AND ", $where);
         $query .= " ORDER BY p.payment_date DESC, p.created_at DESC";
+
         $stmt = $db->prepare($query);
-        
-        foreach ($query_params as $key => $value) {
-            $stmt->bindValue($key, $value);
-        }
-        
+        foreach ($params as $k => $v) $stmt->bindValue($k, $v);
         $stmt->execute();
         
-        $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        echo json_encode($payments);
-        
+        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
     } catch (Exception $e) {
-        log_debug("GET Payments Error: " . $e->getMessage());
         http_response_code(500);
-        echo json_encode([
-            "message" => "Error fetching payments", 
-            "success" => false, 
-            "error" => $e->getMessage()
-        ]);
+        echo json_encode(["success" => false, "message" => $e->getMessage()]);
     }
 }
 
-function createPayment($db, $input) {
+function handleSinglePost($db, $input) {
     try {
-        log_debug("CREATE Payment Input: " . print_r($input, true));
-
-        if (!isset($input['service_id']) || !isset($input['amount'])) {
-            http_response_code(400);
-            echo json_encode(["message" => "Service ID and amount are required", "success" => false]);
-            return;
+        if (!isset($input['service_id'], $input['amount'])) {
+            throw new Exception("Missing required fields (service_id, amount)");
         }
 
-        // جلب بيانات الخدمة أولاً
-        $serviceQuery = "SELECT * FROM services WHERE id = :service_id";
-        $serviceStmt = $db->prepare($serviceQuery);
-        $serviceStmt->bindParam(":service_id", $input['service_id']);
-        $serviceStmt->execute();
-        $service = $serviceStmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$service) {
-            http_response_code(404);
-            echo json_encode(["message" => "Service not found", "success" => false]);
-            return;
-        }
+        $sid = $input['service_id'];
+        $amount = round(floatval($input['amount']), 2);
+        if ($amount <= 0) throw new Exception("Amount must be greater than 0");
 
-        // العملية العادية لإضافة دفعة جديدة
         $db->beginTransaction();
 
-        try {
-            // 1. حساب المبالغ الحالية من جدول الدفعات (وليس من الخدمة)
-            $currentPaymentsQuery = "SELECT COALESCE(SUM(amount), 0) as total_paid FROM payments WHERE service_id = :service_id";
-            $currentPaymentsStmt = $db->prepare($currentPaymentsQuery);
-            $currentPaymentsStmt->bindParam(":service_id", $input['service_id']);
-            $currentPaymentsStmt->execute();
-            $currentPaymentsResult = $currentPaymentsStmt->fetch(PDO::FETCH_ASSOC);
-            
-            $currentAmountPaid = floatval($currentPaymentsResult['total_paid']);
-            $serviceCost = floatval($service['cost']);
-            $paymentAmount = floatval($input['amount']);
+        // جلب بيانات الخدمة
+        $stmt = $db->prepare("SELECT cost, amount_paid FROM services WHERE id = :id");
+        $stmt->execute([':id' => $sid]);
+        $service = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$service) throw new Exception("Service not found");
 
-            log_debug("Current payments total: $currentAmountPaid");
-            log_debug("Service cost: $serviceCost");
-            log_debug("New payment amount: $paymentAmount");
-
-            // 2. حساب المبالغ الجديدة
-            $newAmountPaid = $currentAmountPaid + $paymentAmount;
-            $remainingAmount = $serviceCost - $newAmountPaid;
-
-            // التأكد من أن المبالغ منطقية
-            if ($paymentAmount <= 0) {
-                throw new Exception("Payment amount must be greater than 0");
-            }
-
-            if ($newAmountPaid > $serviceCost) {
-                throw new Exception("Total paid amount cannot exceed service cost");
-            }
-
-            // 3. تحديث حالة الدفع
-            if ($remainingAmount <= 0) {
-                $paymentStatus = 'paid';
-                $remainingAmount = 0;
-                $newAmountPaid = $serviceCost; // تأكد من عدم تجاوز التكلفة
-            } elseif ($newAmountPaid > 0) {
-                $paymentStatus = 'partial';
-            } else {
-                $paymentStatus = 'pending';
-            }
-
-            // 4. إضافة الدفعة الجديدة
-            $paymentQuery = "INSERT INTO payments SET 
-                            id = :id,
-                            service_id = :service_id,
-                            amount = :amount,
-                            payment_method = :payment_method,
-                            transaction_id = :transaction_id,
-                            notes = :notes,
-                            payment_date = :payment_date";
-
-            $paymentStmt = $db->prepare($paymentQuery);
-            
-            $paymentId = uniqid('pay_');
-            $currentDate = date('Y-m-d H:i:s');
-            
-            $paymentStmt->bindParam(":id", $paymentId);
-            $paymentStmt->bindParam(":service_id", $input['service_id']);
-            $paymentStmt->bindParam(":amount", $paymentAmount);
-            $paymentStmt->bindParam(":payment_method", $input['payment_method']);
-            $paymentStmt->bindParam(":transaction_id", $input['transaction_id']);
-            $paymentStmt->bindParam(":notes", $input['notes']);
-            $paymentStmt->bindParam(":payment_date", $currentDate);
-
-            if (!$paymentStmt->execute()) {
-                throw new Exception("Failed to create payment record");
-            }
-
-            // 5. تحديث الخدمة بالمبالغ الجديدة
-            $updateServiceQuery = "UPDATE services SET 
-                                 amount_paid = :amount_paid,
-                                 remaining_amount = :remaining_amount,
-                                 payment_status = :payment_status,
-                                 payment_method = :payment_method,
-                                 transaction_id = :transaction_id,
-                                 payment_notes = :payment_notes
-                                 WHERE id = :service_id";
-            
-            $updateStmt = $db->prepare($updateServiceQuery);
-            $updateStmt->bindParam(":amount_paid", $newAmountPaid);
-            $updateStmt->bindParam(":remaining_amount", $remainingAmount);
-            $updateStmt->bindParam(":payment_status", $paymentStatus);
-            $updateStmt->bindParam(":payment_method", $input['payment_method']);
-            $updateStmt->bindParam(":transaction_id", $input['transaction_id']);
-            $updateStmt->bindParam(":payment_notes", $input['notes']);
-            $updateStmt->bindParam(":service_id", $input['service_id']);
-            
-            if (!$updateStmt->execute()) {
-                throw new Exception("Failed to update service payment details");
-            }
-
-            // تأكيد المعاملة
-            $db->commit();
-
-            log_debug("Payment created successfully with ID: $paymentId");
-            log_debug("New Amount Paid: $newAmountPaid, Remaining: $remainingAmount, Status: $paymentStatus");
-            
-            echo json_encode([
-                "message" => "Payment created successfully", 
-                "success" => true,
-                "id" => $paymentId,
-                "payment_status" => $paymentStatus,
-                "new_amount_paid" => $newAmountPaid,
-                "remaining_amount" => $remainingAmount
-            ]);
-            
-        } catch (Exception $e) {
-            // التراجع عن المعاملة في حالة حدوث خطأ
-            $db->rollBack();
-            throw $e;
-        }
+        $totalPaid = round(floatval($service['amount_paid']) + $amount, 2);
+        $cost = floatval($service['cost']);
         
-    } catch (Exception $e) {
-        log_debug("CREATE Payment Exception: " . $e->getMessage());
-        http_response_code(500);
-        echo json_encode([
-            "message" => "Server error: " . $e->getMessage(), 
-            "success" => false,
-            "error" => $e->getMessage()
+        if ($totalPaid > ($cost + 0.01)) {
+            throw new Exception("Payment exceeds cost (Paid: $totalPaid, Cost: $cost)");
+        }
+
+        // إضافة الدفعة
+        $pid = uniqid('pay_');
+        $pdate = date('Y-m-d H:i:s');
+        $method = $input['payment_method'] ?? 'cash';
+        $tid = $input['transaction_id'] ?? ($input['transactionId'] ?? '');
+        $notes = $input['notes'] ?? '';
+
+        $p_query = "INSERT INTO payments (id, service_id, amount, payment_method, payment_date, transaction_id, notes) 
+                    VALUES (:id, :sid, :amt, :meth, :pdate, :tid, :notes)";
+        $db->prepare($p_query)->execute([
+            ':id' => $pid, ':sid' => $sid, ':amt' => $amount, ':meth' => $method,
+            ':pdate' => $pdate, ':tid' => $tid, ':notes' => $notes
         ]);
+
+        // تحديث الخدمة
+        $rem = max(0, round($cost - $totalPaid, 2));
+        $status = ($rem <= 0) ? 'paid' : 'partial';
+        
+        $u_query = "UPDATE services SET amount_paid = :paid, remaining_amount = :rem, payment_status = :stat WHERE id = :id";
+        $db->prepare($u_query)->execute([':paid' => $totalPaid, ':rem' => $rem, ':stat' => $status, ':id' => $sid]);
+
+        $db->commit();
+        echo json_encode(["success" => true, "id" => $pid, "payment_status" => $status, "remaining_amount" => $rem]);
+    } catch (Exception $e) {
+        if ($db->inTransaction()) $db->rollBack();
+        http_response_code(500);
+        echo json_encode(["success" => false, "message" => $e->getMessage()]);
     }
 }
 
-function updatePayment($db, $input) {
+function handleBulkPost($db, $input) {
     try {
-        $payment_id = isset($input['payment_id']) ? $input['payment_id'] : '';
-        
-        log_debug("UPDATE Payment - payment_id: $payment_id");
-        log_debug("Update Data: " . print_r($input, true));
-        
-        if(empty($payment_id)) {
-            http_response_code(400);
-            echo json_encode(["message" => "Missing payment ID", "success" => false]);
-            return;
+        if (!isset($input['vehicle_id'], $input['amount'])) {
+            throw new Exception("Missing vehicle_id or amount");
         }
 
-        // البدء بمعاملة قاعدة البيانات
+        $vid = $input['vehicle_id'];
+        $dist_rem = round(floatval($input['amount']), 2);
+        if ($dist_rem <= 0) throw new Exception("Amount must be > 0");
+
         $db->beginTransaction();
 
-        try {
-            // 1. جلب بيانات الدفعة الحالية
-            $getPaymentQuery = "SELECT * FROM payments WHERE id = :payment_id";
-            $getStmt = $db->prepare($getPaymentQuery);
-            $getStmt->bindParam(":payment_id", $payment_id);
-            $getStmt->execute();
-            $currentPayment = $getStmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$currentPayment) {
-                throw new Exception("Payment not found");
-            }
+        $stmt = $db->prepare("SELECT id, cost, amount_paid FROM services WHERE vehicle_id = :vid AND payment_status != 'paid' ORDER BY date ASC, created_at ASC");
+        $stmt->execute([':vid' => $vid]);
+        $pending = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $serviceId = $currentPayment['service_id'];
-            $oldAmount = floatval($currentPayment['amount']);
-
-            // 2. تحديث الدفعة
-            $updateFields = [];
-            $updateParams = [];
+        foreach ($pending as $s) {
+            if ($dist_rem <= 0) break;
             
-            $allowedFields = ['amount', 'payment_method', 'transaction_id', 'notes', 'payment_date'];
-            
-            foreach ($allowedFields as $field) {
-                if (isset($input[$field])) {
-                    $updateFields[] = "$field = :$field";
-                    $updateParams[":$field"] = $input[$field];
-                }
-            }
-            
-            if (empty($updateFields)) {
-                throw new Exception("No fields to update");
-            }
-            
-            $updatePaymentQuery = "UPDATE payments SET " . implode(', ', $updateFields) . " WHERE id = :payment_id";
-            $updateParams[":payment_id"] = $payment_id;
-            
-            $updatePaymentStmt = $db->prepare($updatePaymentQuery);
-            
-            foreach ($updateParams as $key => $value) {
-                $updatePaymentStmt->bindValue($key, $value);
-            }
+            $s_rem = round(floatval($s['cost']) - floatval($s['amount_paid']), 2);
+            if ($s_rem <= 0) continue;
 
-            if(!$updatePaymentStmt->execute()) {
-                throw new Exception("Failed to update payment");
-            }
+            $to_pay = min($dist_rem, $s_rem);
+            $new_paid = round(floatval($s['amount_paid']) + $to_pay, 2);
+            $new_rem = round(floatval($s['cost']) - $new_paid, 2);
+            $status = ($new_rem <= 0) ? 'paid' : 'partial';
 
-            // 3. إذا تم تحديث المبلغ، إعادة حساب المبالغ الإجمالية
-            $newAmount = isset($input['amount']) ? floatval($input['amount']) : $oldAmount;
-            
-            if ($newAmount != $oldAmount) {
-                log_debug("Payment amount changed from $oldAmount to $newAmount");
-                
-                // إعادة حساب المبالغ الإجمالية من جدول الدفعات
-                $totalPaymentsQuery = "SELECT COALESCE(SUM(amount), 0) as total_paid FROM payments WHERE service_id = :service_id";
-                $totalPaymentsStmt = $db->prepare($totalPaymentsQuery);
-                $totalPaymentsStmt->bindParam(":service_id", $serviceId);
-                $totalPaymentsStmt->execute();
-                $totalPaymentsResult = $totalPaymentsStmt->fetch(PDO::FETCH_ASSOC);
-                
-                $newAmountPaid = floatval($totalPaymentsResult['total_paid']);
+            // إضافة سجل
+            $pid = uniqid('pay_');
+            $db->prepare("INSERT INTO payments (id, service_id, amount, payment_method, payment_date, notes) VALUES (?,?,?,?,?,?)")
+               ->execute([$pid, $s['id'], $to_pay, $input['payment_method'] ?? 'cash', date('Y-m-d H:i:s'), $input['notes'] ?? 'Bulk Payment']);
 
-                // جلب تكلفة الخدمة
-                $serviceQuery = "SELECT cost FROM services WHERE id = :service_id";
-                $serviceStmt = $db->prepare($serviceQuery);
-                $serviceStmt->bindParam(":service_id", $serviceId);
-                $serviceStmt->execute();
-                $service = $serviceStmt->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$service) {
-                    throw new Exception("Service not found");
-                }
+            // تحديث خدمة
+            $db->prepare("UPDATE services SET amount_paid = ?, remaining_amount = ?, payment_status = ? WHERE id = ?")
+               ->execute([$new_paid, $new_rem, $status, $s['id']]);
 
-                $serviceCost = floatval($service['cost']);
-                $remainingAmount = $serviceCost - $newAmountPaid;
-
-                // التأكد من أن المبالغ منطقية
-                if ($newAmountPaid < 0) $newAmountPaid = 0;
-                if ($remainingAmount < 0) $remainingAmount = 0;
-
-                // تحديث حالة الدفع
-                if ($remainingAmount <= 0) {
-                    $paymentStatus = 'paid';
-                    $remainingAmount = 0;
-                    $newAmountPaid = $serviceCost;
-                } elseif ($newAmountPaid > 0) {
-                    $paymentStatus = 'partial';
-                } else {
-                    $paymentStatus = 'pending';
-                }
-
-                log_debug("Recalculation after payment update:");
-                log_debug("Service Cost: $serviceCost");
-                log_debug("New Paid Total: $newAmountPaid");
-                log_debug("Remaining Amount: $remainingAmount");
-                log_debug("Payment Status: $paymentStatus");
-
-                // تحديث الخدمة
-                $updateServiceQuery = "UPDATE services SET 
-                                      amount_paid = :amount_paid,
-                                      remaining_amount = :remaining_amount,
-                                      payment_status = :payment_status
-                                      WHERE id = :service_id";
-                
-                $updateServiceStmt = $db->prepare($updateServiceQuery);
-                $updateServiceStmt->bindParam(":amount_paid", $newAmountPaid);
-                $updateServiceStmt->bindParam(":remaining_amount", $remainingAmount);
-                $updateServiceStmt->bindParam(":payment_status", $paymentStatus);
-                $updateServiceStmt->bindParam(":service_id", $serviceId);
-                
-                if (!$updateServiceStmt->execute()) {
-                    throw new Exception("Failed to update service");
-                }
-            }
-
-            // تأكيد المعاملة
-            $db->commit();
-            
-            log_debug("Payment updated successfully: $payment_id");
-            
-            echo json_encode([
-                "message" => "Payment updated successfully", 
-                "success" => true,
-                "affected_rows" => $updatePaymentStmt->rowCount()
-            ]);
-            
-        } catch (Exception $e) {
-            // التراجع عن المعاملة في حالة حدوث خطأ
-            $db->rollBack();
-            throw $e;
+            $dist_rem = round($dist_rem - $to_pay, 2);
         }
-        
+
+        $db->commit();
+        echo json_encode(["success" => true, "remaining_from_input" => $dist_rem]);
     } catch (Exception $e) {
-        log_debug("UPDATE Payment Exception: " . $e->getMessage());
-        
+        if ($db->inTransaction()) $db->rollBack();
         http_response_code(500);
-        echo json_encode([
-            "message" => "Server error: " . $e->getMessage(), 
-            "success" => false,
-            "error" => $e->getMessage()
-        ]);
+        echo json_encode(["success" => false, "message" => $e->getMessage()]);
     }
 }
 
-function deletePayment($db, $input) {
+function handlePut($db, $input) {
     try {
-        $payment_id = isset($input['payment_id']) ? $input['payment_id'] : '';
-        log_debug("DELETE Payment - payment_id: $payment_id");
-        
-        if(empty($payment_id)) {
-            http_response_code(400);
-            echo json_encode(["message" => "Missing payment ID", "success" => false]);
-            return;
-        }
+        $pid = $input['payment_id'] ?? '';
+        if (!$pid) throw new Exception("Missing payment_id");
 
-        // البدء بمعاملة قاعدة البيانات
         $db->beginTransaction();
 
-        try {
-            // 1. جلب بيانات الدفعة المراد حذفها
-            $getPaymentQuery = "SELECT * FROM payments WHERE id = :payment_id";
-            $getStmt = $db->prepare($getPaymentQuery);
-            $getStmt->bindParam(":payment_id", $payment_id);
-            $getStmt->execute();
-            $payment = $getStmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$payment) {
-                throw new Exception("Payment not found");
+        $stmt = $db->prepare("SELECT * FROM payments WHERE id = ?");
+        $stmt->execute([$pid]);
+        $old_p = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$old_p) throw new Exception("Payment not found");
+
+        $sid = $old_p['service_id'];
+        $fields = [];
+        $params = [];
+        
+        if (isset($input['transactionId']) && !isset($input['transaction_id'])) $input['transaction_id'] = $input['transactionId'];
+        
+        foreach (['amount', 'payment_method', 'transaction_id', 'notes', 'payment_date'] as $f) {
+            if (isset($input[$f])) {
+                $fields[] = "$f = ?";
+                $params[] = $input[$f];
             }
-
-            $serviceId = $payment['service_id'];
-            $deletedAmount = floatval($payment['amount']);
-
-            // 2. حذف الدفعة
-            $deleteQuery = "DELETE FROM payments WHERE id = :payment_id";
-            $deleteStmt = $db->prepare($deleteQuery);
-            $deleteStmt->bindParam(":payment_id", $payment_id);
-
-            if(!$deleteStmt->execute()) {
-                throw new Exception("Failed to delete payment");
-            }
-
-            // 3. إعادة حساب المبالغ من جدول الدفعات المتبقية
-            $remainingPaymentsQuery = "SELECT COALESCE(SUM(amount), 0) as total_paid FROM payments WHERE service_id = :service_id";
-            $remainingPaymentsStmt = $db->prepare($remainingPaymentsQuery);
-            $remainingPaymentsStmt->bindParam(":service_id", $serviceId);
-            $remainingPaymentsStmt->execute();
-            $remainingPaymentsResult = $remainingPaymentsStmt->fetch(PDO::FETCH_ASSOC);
-            
-            $newAmountPaid = floatval($remainingPaymentsResult['total_paid']);
-
-            // 4. جلب بيانات الخدمة لحساب المبلغ المتبقي
-            $serviceQuery = "SELECT cost FROM services WHERE id = :service_id";
-            $serviceStmt = $db->prepare($serviceQuery);
-            $serviceStmt->bindParam(":service_id", $serviceId);
-            $serviceStmt->execute();
-            $service = $serviceStmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$service) {
-                throw new Exception("Service not found");
-            }
-
-            $serviceCost = floatval($service['cost']);
-            $remainingAmount = $serviceCost - $newAmountPaid;
-
-            // التأكد من أن المبالغ منطقية
-            if ($newAmountPaid < 0) $newAmountPaid = 0;
-            if ($remainingAmount < 0) $remainingAmount = 0;
-
-            log_debug("Recalculation after deletion:");
-            log_debug("Service Cost: $serviceCost");
-            log_debug("Deleted Amount: $deletedAmount");
-            log_debug("New Paid Total: $newAmountPaid");
-            log_debug("Remaining Amount: $remainingAmount");
-
-            // 5. تحديث حالة الدفع
-            if ($newAmountPaid <= 0) {
-                $paymentStatus = 'pending';
-            } elseif ($remainingAmount > 0) {
-                $paymentStatus = 'partial';
-            } else {
-                $paymentStatus = 'paid';
-                $newAmountPaid = $serviceCost; // تأكد من المطابقة
-                $remainingAmount = 0;
-            }
-
-            // 6. تحديث الخدمة
-            $updateQuery = "UPDATE services SET 
-                          amount_paid = :amount_paid,
-                          remaining_amount = :remaining_amount,
-                          payment_status = :payment_status
-                          WHERE id = :service_id";
-            
-            $updateStmt = $db->prepare($updateQuery);
-            $updateStmt->bindParam(":amount_paid", $newAmountPaid);
-            $updateStmt->bindParam(":remaining_amount", $remainingAmount);
-            $updateStmt->bindParam(":payment_status", $paymentStatus);
-            $updateStmt->bindParam(":service_id", $serviceId);
-            
-            if (!$updateStmt->execute()) {
-                throw new Exception("Failed to update service");
-            }
-
-            // تأكيد المعاملة
-            $db->commit();
-            
-            log_debug("Payment deleted successfully: $payment_id");
-            log_debug("Final - Paid: $newAmountPaid, Remaining: $remainingAmount, Status: $paymentStatus");
-            
-            echo json_encode([
-                "message" => "Payment deleted successfully", 
-                "success" => true,
-                "deleted_payment_amount" => $deletedAmount,
-                "new_amount_paid" => $newAmountPaid,
-                "remaining_amount" => $remainingAmount,
-                "payment_status" => $paymentStatus
-            ]);
-            
-        } catch (Exception $e) {
-            // التراجع عن المعاملة في حالة حدوث خطأ
-            $db->rollBack();
-            throw $e;
         }
         
+        if (!empty($fields)) {
+            $params[] = $pid;
+            $db->prepare("UPDATE payments SET " . implode(', ', $fields) . " WHERE id = ?")->execute($params);
+        }
+
+        // إعادة حساب مبالغ الخدمة
+        $stmt = $db->prepare("SELECT ROUND(SUM(amount), 2) as tp FROM payments WHERE service_id = ?");
+        $stmt->execute([$sid]);
+        $new_tp = floatval($stmt->fetch(PDO::FETCH_ASSOC)['tp'] ?? 0);
+
+        $stmt = $db->prepare("SELECT cost FROM services WHERE id = ?");
+        $stmt->execute([$sid]);
+        $cost = floatval($stmt->fetch(PDO::FETCH_ASSOC)['cost'] ?? 0);
+
+        $rem = max(0, round($cost - $new_tp, 2));
+        $stat = ($rem <= 0) ? 'paid' : ($new_tp > 0 ? 'partial' : 'pending');
+
+        $db->prepare("UPDATE services SET amount_paid = ?, remaining_amount = ?, payment_status = ? WHERE id = ?")
+           ->execute([$new_tp, $rem, $stat, $sid]);
+
+        $db->commit();
+        echo json_encode(["success" => true]);
     } catch (Exception $e) {
-        log_debug("DELETE Payment Exception: " . $e->getMessage());
-        
+        if ($db->inTransaction()) $db->rollBack();
         http_response_code(500);
-        echo json_encode([
-            "message" => "Server error: " . $e->getMessage(), 
-            "success" => false,
-            "error" => $e->getMessage()
-        ]);
+        echo json_encode(["success" => false, "message" => $e->getMessage()]);
     }
 }
-?>
+
+function handleDelete($db, $input) {
+    try {
+        $pid = $input['payment_id'] ?? '';
+        if (!$pid) throw new Exception("Missing payment_id");
+
+        $db->beginTransaction();
+
+        $stmt = $db->prepare("SELECT service_id FROM payments WHERE id = ?");
+        $stmt->execute([$pid]);
+        $p = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$p) throw new Exception("Payment not found");
+
+        $sid = $p['service_id'];
+        $db->prepare("DELETE FROM payments WHERE id = ?")->execute([$pid]);
+
+        // إعادة حساب
+        $stmt = $db->prepare("SELECT ROUND(SUM(amount), 2) as tp FROM payments WHERE service_id = ?");
+        $stmt->execute([$sid]);
+        $new_tp = floatval($stmt->fetch(PDO::FETCH_ASSOC)['tp'] ?? 0);
+
+        $stmt = $db->prepare("SELECT cost FROM services WHERE id = ?");
+        $stmt->execute([$sid]);
+        $cost = floatval($stmt->fetch(PDO::FETCH_ASSOC)['cost'] ?? 0);
+
+        $rem = max(0, round($cost - $new_tp, 2));
+        $stat = ($rem <= 0) ? 'paid' : ($new_tp > 0 ? 'partial' : 'pending');
+
+        $db->prepare("UPDATE services SET amount_paid = ?, remaining_amount = ?, payment_status = ? WHERE id = ?")
+           ->execute([$new_tp, $rem, $stat, $sid]);
+
+        $db->commit();
+        echo json_encode(["success" => true]);
+    } catch (Exception $e) {
+        if ($db->inTransaction()) $db->rollBack();
+        http_response_code(500);
+        echo json_encode(["success" => false, "message" => $e->getMessage()]);
+    }
+}

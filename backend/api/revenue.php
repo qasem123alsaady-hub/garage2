@@ -1,8 +1,17 @@
 <?php
-header("Access-Control-Allow-Origin: http://localhost:3000" );
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+    header("Access-Control-Max-Age: 86400");
+} else {
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
+}
+
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 // إظهار جميع الأخطاء
 error_reporting(E_ALL);
@@ -10,7 +19,7 @@ ini_set('display_errors', 1);
 
 // معالجة طلبات OPTIONS
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    http_response_code(200 );
+    http_response_code(200);
     exit();
 }
 
